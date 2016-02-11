@@ -1,0 +1,4 @@
+FruitTetris
+FruitTetris.o
+depend
+include/InitShader.o
