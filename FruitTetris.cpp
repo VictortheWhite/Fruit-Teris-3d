@@ -17,6 +17,7 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 #include "include/Angel.h"
 #include <cstdlib>
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 
@@ -42,11 +43,19 @@ vec2 allRotationsLshape[4][4] = {
 	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}
 };
 
-// colors
-vec4 orange = vec4(1.0, 0.5, 0.0, 1.0); 
+// board colors
 vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = vec4(0.0, 0.0, 0.0, 1.0); 
- 
+
+// fruit colors
+vec4 orange = vec4(1.0, 0.5, 0.0, 1.0); 
+vec4 red = vec4(1.0, 0.0, 0.0, 1.0);
+vec4 green = vec4(0.0, 1.0, 0.0, 1.0);
+vec4 blue = vec4(0.0, 0.0, 1.0, 1.0);
+vec4 purple = vec4(1.0, 0.0, 1.0, 1.0);
+
+vec4 fruitColors[5] = {orange, red, green, blue, purple};
+
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20]; 
 
@@ -90,6 +99,14 @@ void copyArray4OfVec2(vec2* dst, vec2* src) {
 	}
 }
 
+// generate random num between 0 and n-1
+int randomNum(int n) {
+	return rand()%n;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// title operations
+
 // return true if occupied or out of board
 bool occupied(int x, int y) {
 	printf("in occupied: x %d, y %d\n", x, y);
@@ -115,8 +132,7 @@ bool collide(vec2* Title, vec2 direction) {
 
 // Given (x,y), tries to move the title x squares to the right and y squares down
 // Returns true if the title was successfully moved, or false if there was some issue
-bool moveTitle(vec2 direction)
-{
+bool moveTitle(vec2 direction) {
 	// if not collide, move title
 	if(!collide(title, direction)) {
 		titlePos.x += direction.x;
@@ -131,14 +147,14 @@ bool moveTitle(vec2 direction)
 void settleTitle()
 {
 	// update the board vertex colour VBO
+	
 
 	// update occupied cells array
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 // When the current title is moved or rotated (or created), update the VBO containing its vertex position data
-void updateTitle()
-{
+void updateTitle() {
 	// Bind the VBO containing current title vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]); 
 
@@ -166,10 +182,11 @@ void updateTitle()
 	glBindVertexArray(0);
 }
 
+
 //-------------------------------------------------------------------------------------------------------------------
 
 // Called at the start of play and every time a title is placed
-void newtitle()
+void newTitle()
 {
 
 	// for now, set the title type to be 0
@@ -188,8 +205,18 @@ void newtitle()
 
 	// Update the color VBO of current title
 	vec4 newcolours[24];
-	for (int i = 0; i < 24; i++)
-		newcolours[i] = orange; // You should randomlize the color
+	vec4 fColor[4];
+
+	// generate random color for each fruit
+	for (int i = 0; i < 4; i++)
+	{
+		fColor[i] = fruitColors[randomNum(5)];
+	}
+
+	for (int i = 0; i < 24; i++) {
+		newcolours[i] = fColor[i/6]; // You should randomlize the color
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current title vertex colours
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours); // Put the colour data in the VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -243,8 +270,10 @@ void initBoard()
 {
 	// *** Generate the geometric data
 	vec4 boardpoints[1200];
-	for (int i = 0; i < 1200; i++)
+	for (int i = 0; i < 1200; i++) {
 		boardcolours[i] = black; // Let the empty cells on the board be black
+	}
+
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
 		for (int j = 0; j < 10; j++)
@@ -329,7 +358,7 @@ void init()
 	locysize = glGetUniformLocation(program, "ysize");
 
 	// Game initialization
-	newtitle(); // create new next title
+	newTitle(); // create new next title
 
 	// set to default
 	glBindVertexArray(0);
@@ -473,6 +502,8 @@ void Timer(int value) {
 		// settleTitle
 		printf("settleTitle\n");
 		settleTitle();
+		// check full row
+		newTitle();
 	}
 
 	glutTimerFunc(1000, Timer, 0);
@@ -496,6 +527,8 @@ void idle(void)
 
 int main(int argc, char **argv)
 {
+	srand(time(0));
+
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 	glutInitWindowSize(xsize, ysize);
