@@ -25,12 +25,16 @@ using namespace std;
 int xsize = 400; 
 int ysize = 720;
 
-// current tile
-vec2 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
-vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
+// current title
+vec2 title[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the title, on the grid
+vec2 titlepos = vec2(5, 19); // The position of the current title using grid coordinates ((0,0) is the bottom left corner)
 
-// An array storing all possible orientations of all possible tiles
-// The 'tile' array will always be some element [i][j] of this array (an array of vec2)
+// the type and rotation of the current title
+int titleType;
+int rotationStatus;
+
+// An array storing all possible orientations of all possible titles
+// The 'title' array will always be some element [i][j] of this array (an array of vec2)
 vec2 allRotationsLshape[4][4] = 
 	{{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
 	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
@@ -46,7 +50,7 @@ vec4 black  = vec4(0.0, 0.0, 0.0, 1.0);
 bool board[10][20]; 
 
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
-//Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
+//Initially, all will be set to black. As titles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
 vec4 boardcolours[1200];
 
@@ -64,19 +68,34 @@ GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
+// fuc decalrations
 
-// When the current tile is moved or rotated (or created), update the VBO containing its vertex position data
-void updatetile()
+// for sepcial keys(arrow keys)
+void rotateTitle();
+void moveTitleToLeft();
+void moveTitleToRight();
+void accelerateTitle();
+
+// helper methods
+void copyArray4OfVec2(vec2* dst, vec2* src) {
+	for(int i = 0; i < 4; i++) {
+		dst[i] = src[i];
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// When the current title is moved or rotated (or created), update the VBO containing its vertex position data
+void updatetitle()
 {
-	// Bind the VBO containing current tile vertex positions
+	// Bind the VBO containing current title vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]); 
 
-	// For each of the 4 'cells' of the tile,
+	// For each of the 4 'cells' of the title,
 	for (int i = 0; i < 4; i++) 
 	{
 		// Calculate the grid coordinates of the cell
-		GLfloat x = tilepos.x + tile[i].x; 
-		GLfloat y = tilepos.y + tile[i].y;
+		GLfloat x = titlepos.x + title[i].x; 
+		GLfloat y = titlepos.y + title[i].y;
 
 		// Create the 4 corners of the square - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
@@ -97,21 +116,27 @@ void updatetile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Called at the start of play and every time a tile is placed
-void newtile()
+// Called at the start of play and every time a title is placed
+void newtitle()
 {
-	tilepos = vec2(5 , 19); // Put the tile at the top of the board
 
-	// Update the geometry VBO of current tile
+	// for now, set the title type to be 0
+	// and rotation to be 0
+	titleType = 0;
+	rotationStatus = 0;
+
+	titlepos = vec2(5 , 19); // Put the title at the top of the board
+
+	// Update the geometry VBO of current title
 	for (int i = 0; i < 4; i++)
-		tile[i] = allRotationsLshape[0][i]; // Get the 4 pieces of the new tile
-	updatetile(); 
+		title[i] = allRotationsLshape[0][i]; // Get the 4 pieces of the new title
+	updatetitle(); 
 
-	// Update the color VBO of current tile
+	// Update the color VBO of current title
 	vec4 newcolours[24];
 	for (int i = 0; i < 24; i++)
 		newcolours[i] = orange; // You should randomlize the color
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current tile vertex colours
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current title vertex colours
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours); // Put the colour data in the VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -208,19 +233,19 @@ void initBoard()
 	glEnableVertexAttribArray(vColor);
 }
 
-// No geometry for current tile initially
-void initCurrentTile()
+// No geometry for current title initially
+void initCurrenttitle()
 {
 	glBindVertexArray(vaoIDs[2]);
 	glGenBuffers(2, &vboIDs[4]);
 
-	// Current tile vertex positions
+	// Current title vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
 	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
-	// Current tile vertex colours
+	// Current title vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
 	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
@@ -240,29 +265,21 @@ void init()
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
 	glGenVertexArrays(3, &vaoIDs[0]);
 
-	// Initialize the grid, the board, and the current tile
+	// Initialize the grid, the board, and the current title
 	initGrid();
 	initBoard();
-	initCurrentTile();
+	initCurrenttitle();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
 	locysize = glGetUniformLocation(program, "ysize");
 
 	// Game initialization
-	newtile(); // create new next tile
+	newtitle(); // create new next title
 
 	// set to default
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Rotates the current tile, if there is room
-void rotate()
-{      
-
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -276,23 +293,23 @@ void checkfullrow(int row)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Places the current tile - update the board vertex colour VBO and the array maintaining occupied cells
-void settile()
+// Places the current title - update the board vertex colour VBO and the array maintaining occupied cells
+void settitle()
 {
 	
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Given (x,y), tries to move the tile x squares to the right and y squares down
-// Returns true if the tile was successfully moved, or false if there was some issue
-bool movetile(vec2 direction)
+// Given (x,y), tries to move the title x squares to the right and y squares down
+// Returns true if the title was successfully moved, or false if there was some issue
+bool movetitle(vec2 direction)
 {
 	return false;
 }
 //-------------------------------------------------------------------------------------------------------------------
 
-// Starts the game over - empties the board, creates new tiles, resets line counters
+// Starts the game over - empties the board, creates new titles, resets line counters
 void restart()
 {
 
@@ -311,8 +328,8 @@ void display()
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the grid cells (to be drawn first)
 	glDrawArrays(GL_TRIANGLES, 0, 1200); // Draw the board (10*20*2 = 400 triangles)
 
-	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current tile (to be drawn on top of the board)
-	glDrawArrays(GL_TRIANGLES, 0, 24); // Draw the current tile (8 triangles)
+	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current title (to be drawn on top of the board)
+	glDrawArrays(GL_TRIANGLES, 0, 24); // Draw the current title (8 triangles)
 
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glDrawArrays(GL_LINES, 0, 64); // Draw the grid lines (21+11 = 32 lines)
@@ -337,6 +354,38 @@ void reshape(GLsizei w, GLsizei h)
 // Handle arrow key keypresses
 void special(int key, int x, int y)
 {
+	switch(key) {
+		case GLUT_KEY_UP: rotateTitle(); break;	// rotate title if "up"
+		case GLUT_KEY_LEFT: moveTitleToLeft(); break;
+		case GLUT_KEY_RIGHT: moveTitleToRight(); break;
+		case GLUT_KEY_DOWN: accelerateTitle(); break;
+		default: break;
+	}
+}
+
+// special key actions
+
+// Rotates the current title, when up is pressed
+void rotateTitle() {      
+	// new rotation
+	rotationStatus++;
+	rotationStatus = rotationStatus % 4;
+
+	// update title
+	copyArray4OfVec2(title, allRotationsLshape[rotationStatus]);
+	updatetitle();
+}
+// Move the title to the left for 1 grid, when left is pressed
+void moveTitleToLeft() {
+
+}
+// Move the title to the right for 1 grid, when right is pressed
+void moveTitleToRight() {
+
+}
+// Accelerate the falling title
+void accelerateTitle() {
+
 }
 
 //-------------------------------------------------------------------------------------------------------------------
