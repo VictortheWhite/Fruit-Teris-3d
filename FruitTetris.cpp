@@ -72,20 +72,53 @@ GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 
 // for sepcial keys(arrow keys)
 void rotateTitle();
+void accelerateTitle();
+void restartGame();
+
 void moveTitleToLeft();
 void moveTitleToRight();
-void accelerateTitle();
+bool moveTitleDown();
 
+//---------------------------------------------------------------------------------------------------------------------
 // helper methods
+
+// copy array of 4 vec2 from src to dst
 void copyArray4OfVec2(vec2* dst, vec2* src) {
 	for(int i = 0; i < 4; i++) {
 		dst[i] = src[i];
 	}
 }
 
+// return true if collide, false otherwise
+bool collide(vec2 direction) {
+	return false;
+}
+
+// Given (x,y), tries to move the title x squares to the right and y squares down
+// Returns true if the title was successfully moved, or false if there was some issue
+bool moveTitle(vec2 direction)
+{
+	// if not collide, move title
+	if(!collide(direction)) {
+		titlepos.x += direction.x;
+		titlepos.y += direction.y;
+		return true;
+	}
+	// otherwise return false
+	return false;
+}
+
+// Places the current title
+void settleTitle()
+{
+	// update the board vertex colour VBO
+
+	// update occupied cells array
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 // When the current title is moved or rotated (or created), update the VBO containing its vertex position data
-void updatetitle()
+void updateTitle()
 {
 	// Bind the VBO containing current title vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]); 
@@ -130,7 +163,7 @@ void newtitle()
 	// Update the geometry VBO of current title
 	for (int i = 0; i < 4; i++)
 		title[i] = allRotationsLshape[0][i]; // Get the 4 pieces of the new title
-	updatetitle(); 
+	updateTitle(); 
 
 	// Update the color VBO of current title
 	vec4 newcolours[24];
@@ -293,29 +326,6 @@ void checkfullrow(int row)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Places the current title - update the board vertex colour VBO and the array maintaining occupied cells
-void settitle()
-{
-	
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Given (x,y), tries to move the title x squares to the right and y squares down
-// Returns true if the title was successfully moved, or false if there was some issue
-bool movetitle(vec2 direction)
-{
-	return false;
-}
-//-------------------------------------------------------------------------------------------------------------------
-
-// Starts the game over - empties the board, creates new titles, resets line counters
-void restart()
-{
-
-}
-//-------------------------------------------------------------------------------------------------------------------
-
 // Draws the game
 void display()
 {
@@ -373,17 +383,26 @@ void rotateTitle() {
 
 	// update title
 	copyArray4OfVec2(title, allRotationsLshape[rotationStatus]);
-	updatetitle();
+	updateTitle();
 }
 // Move the title to the left for 1 grid, when left is pressed
 void moveTitleToLeft() {
+	vec2 direction = vec2(-1, 0);
+	if (moveTitle(direction))
+	{
+		updateTitle();
+	}
 
 }
 // Move the title to the right for 1 grid, when right is pressed
 void moveTitleToRight() {
-
+	vec2 direction = vec2(1, 0);
+	if (moveTitle(direction))
+	{
+		updateTitle();
+	}
 }
-// Accelerate the falling title
+// Accelerate the falling title, when down is pressed
 void accelerateTitle() {
 
 }
@@ -402,10 +421,48 @@ void keyboard(unsigned char key, int x, int y)
 			exit (EXIT_SUCCESS);
 			break;
 		case 'r': // 'r' key restarts the game
-			restart();
+			restartGame();
 			break;
 	}
 	glutPostRedisplay();
+}
+
+// Restart game, when 'r' is pressed
+void restartGame() {
+	// empty the board
+
+	// create new title
+
+	// resets line counters
+
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// Handles timer callback
+
+void Timer(int value) {
+
+	printf("timer callback\n");
+	if(moveTitleDown()) {
+		printf("title moved down\n");
+		// update title 
+		updateTitle();
+	} else {
+		// if cannot move title dowm
+		// settleTitle
+		printf("settleTitle\n");
+		settleTitle();
+	}
+
+	glutTimerFunc(1000, Timer, 0);
+}
+
+// move title down by 1 grid
+bool moveTitleDown() {
+	vec2 direction = vec2(0,-1);
+
+	return moveTitle(direction);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -432,6 +489,7 @@ int main(int argc, char **argv)
 	glutReshapeFunc(reshape);
 	glutSpecialFunc(special);
 	glutKeyboardFunc(keyboard);
+	glutTimerFunc(1000, Timer, 0);	/* timer interval 1s */
 	glutIdleFunc(idle);
 
 	glutMainLoop(); // Start main loop
