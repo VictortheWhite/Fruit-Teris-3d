@@ -27,7 +27,7 @@ int ysize = 720;
 
 // current title
 vec2 title[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the title, on the grid
-vec2 titlepos = vec2(5, 19); // The position of the current title using grid coordinates ((0,0) is the bottom left corner)
+vec2 titlePos = vec2(5, 19); // The position of the current title using grid coordinates ((0,0) is the bottom left corner)
 
 // the type and rotation of the current title
 int titleType;
@@ -35,11 +35,12 @@ int rotationStatus;
 
 // An array storing all possible orientations of all possible titles
 // The 'title' array will always be some element [i][j] of this array (an array of vec2)
-vec2 allRotationsLshape[4][4] = 
-	{{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
+vec2 allRotationsLshape[4][4] = {
+	{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
 	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
 	{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
-	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}};
+	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}
+};
 
 // colors
 vec4 orange = vec4(1.0, 0.5, 0.0, 1.0); 
@@ -89,9 +90,27 @@ void copyArray4OfVec2(vec2* dst, vec2* src) {
 	}
 }
 
+// return true if occupied or out of board
+bool occupied(int x, int y) {
+	printf("in occupied: x %d, y %d\n", x, y);
+	if(x > 9 || x < 0) {
+		// x out of bound
+		return true;
+	}
+	if(y > 19 || y < 0) {
+		// y out of bound
+		return true;
+	}
+
+	return board[x][y];
+}
+
 // return true if collide, false otherwise
-bool collide(vec2 direction) {
-	return false;
+bool collide(vec2* Title, vec2 direction) {
+	return occupied(titlePos.x + title[0].x + direction.x, titlePos.y + title[0].y + direction.y)
+		|| occupied(titlePos.x + title[1].x + direction.x, titlePos.y + title[1].y + direction.y)
+		|| occupied(titlePos.x + title[2].x + direction.x, titlePos.y + title[2].y + direction.y)
+		|| occupied(titlePos.x + title[3].x + direction.x, titlePos.y + title[3].y + direction.y);
 }
 
 // Given (x,y), tries to move the title x squares to the right and y squares down
@@ -99,9 +118,9 @@ bool collide(vec2 direction) {
 bool moveTitle(vec2 direction)
 {
 	// if not collide, move title
-	if(!collide(direction)) {
-		titlepos.x += direction.x;
-		titlepos.y += direction.y;
+	if(!collide(title, direction)) {
+		titlePos.x += direction.x;
+		titlePos.y += direction.y;
 		return true;
 	}
 	// otherwise return false
@@ -127,8 +146,8 @@ void updateTitle()
 	for (int i = 0; i < 4; i++) 
 	{
 		// Calculate the grid coordinates of the cell
-		GLfloat x = titlepos.x + title[i].x; 
-		GLfloat y = titlepos.y + title[i].y;
+		GLfloat x = titlePos.x + title[i].x; 
+		GLfloat y = titlePos.y + title[i].y;
 
 		// Create the 4 corners of the square - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
@@ -158,11 +177,13 @@ void newtitle()
 	titleType = 0;
 	rotationStatus = 0;
 
-	titlepos = vec2(5 , 19); // Put the title at the top of the board
+	titlePos = vec2(5 , 19); // Put the title at the top of the board
 
 	// Update the geometry VBO of current title
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++) {
 		title[i] = allRotationsLshape[0][i]; // Get the 4 pieces of the new title
+	}
+
 	updateTitle(); 
 
 	// Update the color VBO of current title
@@ -267,7 +288,7 @@ void initBoard()
 }
 
 // No geometry for current title initially
-void initCurrenttitle()
+void initCurrentTitle()
 {
 	glBindVertexArray(vaoIDs[2]);
 	glGenBuffers(2, &vboIDs[4]);
@@ -301,7 +322,7 @@ void init()
 	// Initialize the grid, the board, and the current title
 	initGrid();
 	initBoard();
-	initCurrenttitle();
+	initCurrentTitle();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
@@ -443,7 +464,6 @@ void restartGame() {
 
 void Timer(int value) {
 
-	printf("timer callback\n");
 	if(moveTitleDown()) {
 		printf("title moved down\n");
 		// update title 
