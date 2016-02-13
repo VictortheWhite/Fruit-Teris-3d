@@ -37,11 +37,37 @@ int rotationStatus;
 // An array storing all possible orientations of all possible titles
 // The 'title' array will always be some element [i][j] of this array (an array of vec2)
 vec2 allRotationsLshape[4][4] = {
+	{vec2(0,0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
+		{vec2(0,0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
+		{vec2(0,0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
+		{vec2(0,0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
+	/*
 	{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
 	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
 	{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
 	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}
+	*/
 };
+
+/*
+vec2 allRotationsShapes[4][4][4] = {
+	{
+		{vec2(0,0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
+		{vec2(0,0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
+		{vec2(0,0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
+		{vec2(0,0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
+	},
+	{
+	
+	},
+	{
+	
+	},
+	{
+	
+	}
+}
+*/
 
 // board colors
 vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
@@ -55,6 +81,9 @@ vec4 blue = vec4(0.0, 0.0, 1.0, 1.0);
 vec4 purple = vec4(1.0, 0.0, 1.0, 1.0);
 
 vec4 fruitColors[5] = {orange, red, green, blue, purple};
+
+// furit colors of current title
+vec4 currentTitleFruitColors[4];
 
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20]; 
@@ -104,6 +133,11 @@ int randomNum(int n) {
 	return rand()%n;
 }
 
+// get fruit color
+vec4 getFruitColor() {
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // title operations
 
@@ -147,7 +181,21 @@ bool moveTitle(vec2 direction) {
 void settleTitle()
 {
 	// update the board vertex colour VBO
-	
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			// each square has 6 vertex
+			int vIndex = 6 * (10 * (titlePos.y + title[i].y) + (titlePos.x + title[i].x)) + j;
+			boardcolours[vIndex] = currentTitleFruitColors[i];
+		}
+	}
+
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	//glBindVertexArray(0);
+	glBindVertexArray(vboIDs[3]);
 
 	// update occupied cells array
 }
@@ -205,16 +253,15 @@ void newTitle()
 
 	// Update the color VBO of current title
 	vec4 newcolours[24];
-	vec4 fColor[4];
 
 	// generate random color for each fruit
 	for (int i = 0; i < 4; i++)
 	{
-		fColor[i] = fruitColors[randomNum(5)];
+		currentTitleFruitColors[i] = fruitColors[randomNum(5)];
 	}
 
 	for (int i = 0; i < 24; i++) {
-		newcolours[i] = fColor[i/6]; // You should randomlize the color
+		newcolours[i] = currentTitleFruitColors[i/6]; 
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current title vertex colours
