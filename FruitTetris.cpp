@@ -243,6 +243,44 @@ void updateTitle() {
 	glBindVertexArray(0);
 }
 
+// whether a title is out of upper bound
+// used when generating position of new title
+bool isTitleOutOfUpperBound() {
+	for (int i = 0; i < 4; ++i)
+	{
+		if (titlePos.y + title[i].y > 19)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool isTitleOutOfLeftBound() {
+	for (int i = 0; i < 4; ++i)
+	{
+		if (titlePos.x + title[i].x < 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool isTitleOutOfRightBound() {
+	for (int i = 0; i < 4; ++i)
+	{
+		if (titlePos.x + title[i].x > 9)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // Called at the start of play and every time a title is placed
 void newTitle()
 {
@@ -252,12 +290,40 @@ void newTitle()
 	titleType = 0;
 	rotationStatus = 0;
 
-	titlePos = vec2(5 , 19); // Put the title at the top of the board
+	int titleXPos = randomNum(10);
+	int titleRotation = randomNum(4);
+
+	printf("aaaaaaa %d\n",titleRotation);
+
+	titlePos = vec2(titleXPos , 19); // Put the title at the top of the board
 
 	// Update the geometry VBO of current title
 	for (int i = 0; i < 4; i++) {
-		title[i] = allRotationsLshape[0][i]; // Get the 4 pieces of the new title
+		title[i] = allRotationsLshape[titleRotation][i]; // Get the 4 pieces of the new title
 	}
+
+	// adjust position of title to fit in the screen
+	if (isTitleOutOfUpperBound())
+	{
+		titlePos.y += -1;
+	}
+	if (isTitleOutOfRightBound())
+	{
+		titlePos.x += -1;
+		if (isTitleOutOfRightBound())
+		{
+			titlePos.x += -1;
+		}
+	}
+	if (isTitleOutOfLeftBound())
+	{
+		titlePos.x += 1;
+		if (isTitleOutOfLeftBound())
+		{
+			titlePos.x += 1;
+		}
+	}
+
 
 	updateTitle(); 
 
