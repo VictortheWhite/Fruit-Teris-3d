@@ -134,8 +134,14 @@ int randomNum(int n) {
 }
 
 // get fruit color
-vec4 getFruitColor() {
+vec4 getGridColor(int x, int y) {
+	int vertexIndex = 6 * ( y * 10 + x);
+	return boardcolours[vertexIndex];
+}
 
+vec4 getGridColor(vec2 pos) {
+	int vertexIndex = 6 * ( pos.y * 10 + pos.x);
+	return boardcolours[vertexIndex];
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -143,7 +149,6 @@ vec4 getFruitColor() {
 
 // return true if occupied or out of board
 bool occupied(int x, int y) {
-	printf("in occupied: x %d, y %d\n", x, y);
 	if(x > 9 || x < 0) {
 		// x out of bound
 		return true;
@@ -169,8 +174,11 @@ bool collide(vec2* Title, vec2 direction) {
 bool moveTitle(vec2 direction) {
 	// if not collide, move title
 	if(!collide(title, direction)) {
+		/*
 		titlePos.x += direction.x;
 		titlePos.y += direction.y;
+		*/
+		titlePos += direction;
 		return true;
 	}
 	// otherwise return false
@@ -206,7 +214,6 @@ void settleTitle()
 	}
 }
 
-//-------------------------------------------------------------------------------------------------------------------
 // When the current title is moved or rotated (or created), update the VBO containing its vertex position data
 void updateTitle() {
 	// Bind the VBO containing current title vertex positions
@@ -236,9 +243,6 @@ void updateTitle() {
 	glBindVertexArray(0);
 }
 
-
-//-------------------------------------------------------------------------------------------------------------------
-
 // Called at the start of play and every time a title is placed
 void newTitle()
 {
@@ -257,14 +261,18 @@ void newTitle()
 
 	updateTitle(); 
 
-	// Update the color VBO of current title
-	vec4 newcolours[24];
 
 	// generate random color for each fruit
 	for (int i = 0; i < 4; i++)
 	{
 		currentTitleFruitColors[i] = fruitColors[randomNum(5)];
 	}
+
+}
+
+void displayTitle() {
+	// Update the color VBO of current title
+	vec4 newcolours[24];
 
 	for (int i = 0; i < 24; i++) {
 		newcolours[i] = currentTitleFruitColors[i/6]; 
@@ -278,7 +286,21 @@ void newTitle()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
+// game logic
 
+// return true if game is over
+bool isGameOver() {
+	return collide(title, vec2(0,0));
+}
+
+void eliminate() {
+	printf("eliminating\n");
+}
+
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// game initialization
 void initGrid()
 {
 	// ***Generate geometry data
@@ -412,19 +434,11 @@ void init()
 
 	// Game initialization
 	newTitle(); // create new next title
+	displayTitle();
 
 	// set to default
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Checks if the specified row (0 is the bottom 19 the top) is full
-// If every cell in the row is occupied, it will clear that cell and everything above it will shift down one row
-void checkfullrow(int row)
-{
-
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -542,6 +556,7 @@ void accelerateTitle() {
 		settleTitle();
 		// check full row
 		newTitle();
+		displayTitle();
 	}
 }
 
@@ -567,6 +582,9 @@ void keyboard(unsigned char key, int x, int y)
 
 // Restart game, when 'r' is pressed
 void restartGame() {
+
+	printf("restarting game\n");
+	exit(0);
 	// empty the board
 
 	// create new title
@@ -590,8 +608,22 @@ void Timer(int value) {
 		// settleTitle
 		printf("settleTitle\n");
 		settleTitle();
-		// check full row
+
+		// try to eliminate
+		eliminate();
+
+		// generate new title
 		newTitle();
+
+		// check whether game over
+		if (isGameOver())
+		{
+			restartGame();
+			return;
+		}
+
+		// display new title
+		displayTitle();
 	}
 
 	glutTimerFunc(1000, Timer, 0);
@@ -600,7 +632,6 @@ void Timer(int value) {
 // move title down by 1 grid
 bool moveTitleDown() {
 	vec2 direction = vec2(0,-1);
-
 	return moveTitle(direction);
 }
 
