@@ -158,10 +158,10 @@ bool occupied(int x, int y) {
 
 // return true if collide, false otherwise
 bool collide(vec2* Title, vec2 direction) {
-	return occupied(titlePos.x + title[0].x + direction.x, titlePos.y + title[0].y + direction.y)
-		|| occupied(titlePos.x + title[1].x + direction.x, titlePos.y + title[1].y + direction.y)
-		|| occupied(titlePos.x + title[2].x + direction.x, titlePos.y + title[2].y + direction.y)
-		|| occupied(titlePos.x + title[3].x + direction.x, titlePos.y + title[3].y + direction.y);
+	return occupied(titlePos.x + Title[0].x + direction.x, titlePos.y + Title[0].y + direction.y)
+		|| occupied(titlePos.x + Title[1].x + direction.x, titlePos.y + Title[1].y + direction.y)
+		|| occupied(titlePos.x + Title[2].x + direction.x, titlePos.y + Title[2].y + direction.y)
+		|| occupied(titlePos.x + Title[3].x + direction.x, titlePos.y + Title[3].y + direction.y);
 }
 
 // Given (x,y), tries to move the title x squares to the right and y squares down
@@ -198,6 +198,12 @@ void settleTitle()
 	glBindVertexArray(vboIDs[3]);
 
 	// update occupied cells array
+	for (int i = 0; i < 4; ++i)
+	{
+		int x = titlePos.x + title[i].x;
+		int y = titlePos.y + title[i].y;
+		board[x][y] = true;
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -475,11 +481,34 @@ void special(int key, int x, int y)
 // Rotates the current title, when up is pressed
 void rotateTitle() {      
 	// new rotation
-	rotationStatus++;
-	rotationStatus = rotationStatus % 4;
+	int newRotation = rotationStatus;
 
-	// update title
-	copyArray4OfVec2(title, allRotationsLshape[rotationStatus]);
+	newRotation = (newRotation + 1) % 4;
+
+	// check whether possible to rotate
+	if(collide(allRotationsLshape[newRotation], vec2(0,0))) {
+		// if the rotated title will collide
+		if(!collide(allRotationsLshape[newRotation], vec2(1,0))) {
+			// if move to the right by 1 will work
+			titlePos.x += 1;
+		} else if(!collide(allRotationsLshape[newRotation], vec2(-1,0))) {
+			// if move to the left by 1 will work
+			titlePos.x += -1;
+		} else if(!collide(allRotationsLshape[newRotation], vec2(2, 0))) {
+			// if move to the right by 2 will work
+			titlePos.x += 2;
+		} else if(!collide(allRotationsLshape[newRotation], vec2(-2, 0))) {
+			// if move to the left by 2 will work
+			titlePos.x += -2;
+		} else {
+			// cannot rotate
+			return;
+		}
+	}
+
+	// rotate and update title
+	rotationStatus = newRotation;
+	copyArray4OfVec2(title, allRotationsLshape[newRotation]);
 	updateTitle();
 }
 // Move the title to the left for 1 grid, when left is pressed
@@ -501,7 +530,19 @@ void moveTitleToRight() {
 }
 // Accelerate the falling title, when down is pressed
 void accelerateTitle() {
-
+	// let it to fall for one for now,,,
+	if(moveTitleDown()) {
+		printf("title moved down\n");
+		// update title 
+		updateTitle();
+	} else {
+		// if cannot move title dowm
+		// settleTitle
+		printf("settleTitle\n");
+		settleTitle();
+		// check full row
+		newTitle();
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------
