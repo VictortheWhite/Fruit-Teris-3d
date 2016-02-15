@@ -133,6 +133,20 @@ int randomNum(int n) {
 	return rand()%n;
 }
 
+// return true if two vec4 is equal
+bool isVec4Equal(vec4 a, vec4 b) {
+	int flag = true;
+	for (int i = 0; i < 4; ++i)
+	{
+		if (a[i] != b[i])
+		{
+			flag = false;
+		}
+	}
+	return flag;
+}
+
+
 // get fruit color
 vec4 getGridColor(int x, int y) {
 	int vertexIndex = 6 * ( y * 10 + x);
@@ -359,11 +373,239 @@ bool isGameOver() {
 	return collide(title, vec2(0,0));
 }
 
-void eliminate() {
-	printf("eliminating\n");
+// set full row's eliminated to be true
+// return true if exists full row to be eliminated
+bool checkFullRow(bool **eliminated) {
+	int flag = false;
+	for (int j = 0; j < 20; ++j)
+	{
+		bool fullRow = true;
+		for (int i = 0; i < 10; ++i)
+		{
+			if (!board[i][j])
+			{
+				fullRow = false;
+			}
+		}
+		// if full row, set eliminated to be true
+		if (fullRow)
+		{
+			flag = true;
+			for (int i = 0; i < 10; ++i)
+			{
+				eliminated[i][j] = true;
+			}
+		}
+	}
+
+	return flag;
 }
 
+// check a grid's down, right-hand, northeast and sourtheast side
+// return true if fruits to be eliminated
 
+bool checkSingleGrid(int x, int y, bool **eliminated) {
+
+	bool flag = false;
+	vec4 thisGridColor = getGridColor(x, y);
+	if (isVec4Equal(thisGridColor, black))
+	{
+		return false;;
+	}
+
+	// check down side
+	if (y >= 2)
+	{
+		int count = 1;
+		
+		while(isVec4Equal(thisGridColor, getGridColor(x, y - count))) {
+			count++;
+			if (y-count < 0)
+			{
+				break;
+			}
+		}
+
+		if (count >= 3)
+		{
+			flag = true;
+			for (int i = 0; i < count; ++i)
+			{
+				eliminated[x][y-i] = true;
+			}
+		}
+	}
+
+	
+	// check right-hand side
+	if(x < 8) {
+		int count = 1;
+		while(isVec4Equal(thisGridColor, getGridColor(x+count, y))) {
+			count++;
+			if (x+count > 9)
+			{
+				break;
+			}
+		}
+
+		if (count >= 3)
+		{
+			flag = true;
+			for (int i = 0; i < count; ++i)
+			{
+				eliminated[x+i][y] = true;
+			}
+		}
+
+	}
+	
+	// check north-east side
+	if (y < 18 && x < 8)
+	{
+		int count = 1;
+		while(isVec4Equal(thisGridColor, getGridColor(x+count, y+count))) {
+			count++;
+			if (x+count> 9 || y+count > 19)
+			{
+				break;
+			}
+		}
+
+		if (count >= 3)
+		{
+			flag = true;
+			for (int i = 0; i < count; ++i)
+			{
+				eliminated[x+i][y+i] = true;
+			}
+		}
+	}
+
+	// check south-east side
+	if (y >= 2 && x < 8)
+	{
+		int count = 1;
+		while(isVec4Equal(thisGridColor, getGridColor(x+count, y-count))) {
+			count++;
+			if (x+count > 9 || y-count < 0)
+			{
+				break;
+			}
+		}
+
+		if (count >= 3)
+		{
+			flag = true;
+			for (int i = 0; i < count; ++i)
+			{
+				eliminated[x+i][y-i] = true;
+			}
+		}
+	}
+
+	return flag;
+	
+
+}
+
+// check all grids for 4 consecutive smae fruits
+// return true if there are fruits to be eliminated
+bool checkEliminatedFruit(bool **eliminated) {
+	bool flag = false;
+	for (int j = 20; j >= 0; --j)
+	{
+		for (int i = 0; i < 10; ++i)
+		{
+			if(checkSingleGrid(i, j, eliminated))
+				flag = true;
+		}
+	}
+
+	return flag;
+
+}
+
+void updateBoradAfterEliminating(bool **eliminated) {
+	for (int i = 0; i < 10; ++i)
+	{
+		int count = 0;	// the distance to be shift down
+		for (int j = 0; j < 19; ++j)
+		{
+			if (eliminated[i][j])
+			{
+				count++;
+			} else {
+				// move grid down by count
+				// update occupied board
+				board[i][j-count] = board[i][j];
+				// update color
+				vec4 newColor = getGridColor(i, j);
+				for (int k = 0; k < 6; ++k)
+				{
+					int vertexIndex = 6 * ( 10 * ( j - count ) + i) + k;
+					boardcolours[vertexIndex] = newColor;
+				}
+			}
+		}
+	}
+
+}
+
+void updateVBOAfterEliminating() {
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	//glBindVertexArray(0);
+	glBindVertexArray(vboIDs[3]);
+}
+
+void eliminate(bool &needsUpdate) {
+	bool **eliminated = new bool*[10];	// true for grid to be eliminated
+
+	for (int i = 0; i < 10; ++i)
+	{
+		eliminated[i] = new bool[20];
+		for (int j = 0; j < 20; ++j)
+		{
+			eliminated[i][j] = false;
+		}
+	}
+
+	// check full rows
+	bool fullRow = checkFullRow(eliminated);
+
+	// check consecutive same fruits
+	bool consecutiveFruits = checkEliminatedFruit(eliminated);
+
+	// if somethins is eliminated
+	// recursively call eliminate untill no fruit can be eliminated
+	if (fullRow || consecutiveFruits)
+	{
+		needsUpdate = true;
+		updateBoradAfterEliminating(eliminated);
+		eliminate(needsUpdate);
+	}
+
+	for (int i = 0; i < 10; ++i)
+	{
+		delete[] eliminated[i];
+	}
+
+	delete[] eliminated;
+}
+
+void eliminateBoardAndUpdate() {
+	bool needUpdate = false;
+
+	eliminate(needUpdate);
+
+	cout << "needsUpdate: " << needUpdate << endl;
+
+	if (needUpdate)
+	{
+		updateVBOAfterEliminating();
+	}
+}
 
 //-------------------------------------------------------------------------------------------------------------------
 // game initialization
@@ -676,7 +918,7 @@ void Timer(int value) {
 		settleTitle();
 
 		// try to eliminate
-		eliminate();
+		eliminateBoardAndUpdate();
 
 		// generate new title
 		newTitle();
@@ -712,6 +954,9 @@ void idle(void)
 
 int main(int argc, char **argv)
 {
+
+	cout << (vec4(1,2,3,4)==vec4(1,2,3,4)) << endl << endl << endl;
+
 	srand(time(0));
 
 	glutInit(&argc, argv);
