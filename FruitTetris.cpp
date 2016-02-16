@@ -21,6 +21,10 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 
 using namespace std;
 
+int timerIntervial = 800;
+
+bool halted = false;
+bool paused = false;
 
 // xsize and ysize represent the window size - updated if window is reshaped to prevent stretching of the game
 int xsize = 400; 
@@ -41,33 +45,40 @@ vec2 allRotationsLshape[4][4] = {
 		{vec2(0,0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
 		{vec2(0,0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
 		{vec2(0,0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
-	/*
-	{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
-	{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
-	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}
-	*/
 };
 
-/*
+
 vec2 allRotationsShapes[4][4][4] = {
+	// L shape
 	{
-		{vec2(0,0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-		{vec2(0,0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
-		{vec2(0,0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
-		{vec2(0,0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
+		{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
+		{vec2(0, 0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
+		{vec2(0, 0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
+		{vec2(0, 0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
 	},
+	// I shape
 	{
-	
+		{vec2(0, 0), vec2(1, 0), vec2(-1, 0), vec2(-2, 0)},
+		{vec2(0, 0), vec2(0, 1), vec2(0, -1), vec2(0, -2)},
+		{vec2(0, 0), vec2(-1,0), vec2(1,  0), vec2(2,  0)},
+		{vec2(0, 0), vec2(0,-1), vec2(0,  1), vec2(0,  2)}
 	},
+	// S shape
 	{
-	
+		{vec2(0, 0), vec2(1, 0), vec2(0, -1), vec2(-1,-1)},
+		{vec2(0, 0), vec2(0, 1), vec2(1,  0), vec2(1, -1)},
+		{vec2(0, 0), vec2(-1,0), vec2(0,  1), vec2(1,  1)},
+		{vec2(0, 0), vec2(0,-1), vec2(-1, 0), vec2(-1, 1)}
 	},
+	// T shape
 	{
-	
+		{vec2(0, 0), vec2(1, 0), vec2(-1, 0), vec2(0, -1)},
+		{vec2(0, 0), vec2(0, 1), vec2(0, -1), vec2(1,  0)},
+		{vec2(0, 0), vec2(-1,0), vec2(1,  0), vec2(0,  1)},
+		{vec2(0, 0), vec2(0,-1), vec2(0,  1), vec2(-1, 0)}
 	}
-}
-*/
+};
+
 
 // board colors
 vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
@@ -117,7 +128,7 @@ void restartGame();
 void moveTitleToLeft();
 void moveTitleToRight();
 bool moveTitleDown();
-
+void moveTitleDownAndSettle();
 //---------------------------------------------------------------------------------------------------------------------
 // helper methods
 
@@ -299,27 +310,26 @@ bool isTitleOutOfRightBound() {
 void newTitle()
 {
 
-	// for now, set the title type to be 0
-	// and rotation to be 0
-	titleType = 0;
-	rotationStatus = 0;
 
 	int titleXPos = randomNum(10);
 	int titleRotation = randomNum(4);
 
-	printf("aaaaaaa %d\n",titleRotation);
-
 	titlePos = vec2(titleXPos , 19); // Put the title at the top of the board
+	titleType = randomNum(4);	// random type of title
 
 	// Update the geometry VBO of current title
 	for (int i = 0; i < 4; i++) {
-		title[i] = allRotationsLshape[titleRotation][i]; // Get the 4 pieces of the new title
+		title[i] = allRotationsShapes[titleType][titleRotation][i]; // Get the 4 pieces of the new title
 	}
 
 	// adjust position of title to fit in the screen
 	if (isTitleOutOfUpperBound())
 	{
 		titlePos.y += -1;
+		if (isTitleOutOfUpperBound())
+		{
+			titlePos.y += -1;
+		}
 	}
 	if (isTitleOutOfRightBound())
 	{
@@ -571,6 +581,10 @@ void eliminate(bool &needsUpdate) {
 		}
 	}
 
+	static int shit = 0;
+	shit++;
+	cout << "shit's working in here: " <<shit << endl;
+
 	// check full rows
 	bool fullRow = checkFullRow(eliminated);
 
@@ -793,7 +807,7 @@ void special(int key, int x, int y)
 		case GLUT_KEY_UP: rotateTitle(); break;	// rotate title if "up"
 		case GLUT_KEY_LEFT: moveTitleToLeft(); break;
 		case GLUT_KEY_RIGHT: moveTitleToRight(); break;
-		case GLUT_KEY_DOWN: accelerateTitle(); break;
+		case GLUT_KEY_DOWN: moveTitleDownAndSettle(); break;
 		default: break;
 	}
 }
@@ -808,18 +822,18 @@ void rotateTitle() {
 	newRotation = (newRotation + 1) % 4;
 
 	// check whether possible to rotate
-	if(collide(allRotationsLshape[newRotation], vec2(0,0))) {
+	if(collide(allRotationsShapes[titleType][newRotation], vec2(0,0))) {
 		// if the rotated title will collide
-		if(!collide(allRotationsLshape[newRotation], vec2(1,0))) {
+		if(!collide(allRotationsShapes[titleType][newRotation], vec2(1,0))) {
 			// if move to the right by 1 will work
 			titlePos.x += 1;
-		} else if(!collide(allRotationsLshape[newRotation], vec2(-1,0))) {
+		} else if(!collide(allRotationsShapes[titleType][newRotation], vec2(-1,0))) {
 			// if move to the left by 1 will work
 			titlePos.x += -1;
-		} else if(!collide(allRotationsLshape[newRotation], vec2(2, 0))) {
+		} else if(!collide(allRotationsShapes[titleType][newRotation], vec2(2, 0))) {
 			// if move to the right by 2 will work
 			titlePos.x += 2;
-		} else if(!collide(allRotationsLshape[newRotation], vec2(-2, 0))) {
+		} else if(!collide(allRotationsShapes[titleType][newRotation], vec2(-2, 0))) {
 			// if move to the left by 2 will work
 			titlePos.x += -2;
 		} else {
@@ -830,7 +844,7 @@ void rotateTitle() {
 
 	// rotate and update title
 	rotationStatus = newRotation;
-	copyArray4OfVec2(title, allRotationsLshape[newRotation]);
+	copyArray4OfVec2(title, allRotationsShapes[titleType][newRotation]);
 	updateTitle();
 }
 // Move the title to the left for 1 grid, when left is pressed
@@ -850,23 +864,9 @@ void moveTitleToRight() {
 		updateTitle();
 	}
 }
-// Accelerate the falling title, when down is pressed
-void accelerateTitle() {
-	// let it to fall for one for now,,,
-	if(moveTitleDown()) {
-		printf("title moved down\n");
-		// update title 
-		updateTitle();
-	} else {
-		// if cannot move title dowm
-		// settleTitle
-		printf("settleTitle\n");
-		settleTitle();
-		// check full row
-		newTitle();
-		displayTitle();
-	}
-}
+
+
+
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -907,6 +907,23 @@ void restartGame() {
 
 void Timer(int value) {
 
+	moveTitleDownAndSettle();
+
+	if (halted || paused)
+	{
+		return;
+	}
+
+	glutTimerFunc(timerIntervial, Timer, 0);
+}
+
+
+// Move title down by 1
+// check whether it should be settled
+// do elimination
+// update board
+
+void moveTitleDownAndSettle() {
 	if(moveTitleDown()) {
 		printf("title moved down\n");
 		// update title 
@@ -917,24 +934,26 @@ void Timer(int value) {
 		printf("settleTitle\n");
 		settleTitle();
 
+		cout << "after settle title"<< endl;
 		// try to eliminate
 		eliminateBoardAndUpdate();
 
+		cout << "before new title" << endl;
 		// generate new title
 		newTitle();
 
+		cout << "after new title" << endl;
 		// check whether game over
 		if (isGameOver())
 		{
-			restartGame();
+			// do nothing
+			halted = true;
 			return;
 		}
 
 		// display new title
 		displayTitle();
 	}
-
-	glutTimerFunc(1000, Timer, 0);
 }
 
 // move title down by 1 grid
@@ -942,6 +961,9 @@ bool moveTitleDown() {
 	vec2 direction = vec2(0,-1);
 	return moveTitle(direction);
 }
+
+
+
 
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -972,7 +994,7 @@ int main(int argc, char **argv)
 	glutReshapeFunc(reshape);
 	glutSpecialFunc(special);
 	glutKeyboardFunc(keyboard);
-	glutTimerFunc(1000, Timer, 0);	/* timer interval 1s */
+	glutTimerFunc(timerIntervial, Timer, 0);	/* timer interval 1s */
 	glutIdleFunc(idle);
 
 	glutMainLoop(); // Start main loop
