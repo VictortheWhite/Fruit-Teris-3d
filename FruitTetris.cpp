@@ -129,6 +129,10 @@ void moveTitleToLeft();
 void moveTitleToRight();
 bool moveTitleDown();
 void moveTitleDownAndSettle();
+
+void displayTitle();
+void Timer(int);
+
 //---------------------------------------------------------------------------------------------------------------------
 // helper methods
 
@@ -155,6 +159,16 @@ bool isVec4Equal(vec4 a, vec4 b) {
 		}
 	}
 	return flag;
+}
+
+
+// update board vbo
+void updateVboOfBoardColor() {
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	//glBindVertexArray(0);
+	glBindVertexArray(vboIDs[3]);
 }
 
 
@@ -561,15 +575,9 @@ void updateBoradAfterEliminating(bool **eliminated) {
 
 }
 
-void updateVBOAfterEliminating() {
-	// update vbo
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
-	//glBindVertexArray(0);
-	glBindVertexArray(vboIDs[3]);
-}
 
-void eliminate(bool &needsUpdate) {
+
+void eliminate() {
 	bool **eliminated = new bool*[10];	// true for grid to be eliminated
 
 	for (int i = 0; i < 10; ++i)
@@ -591,13 +599,30 @@ void eliminate(bool &needsUpdate) {
 	// check consecutive same fruits
 	bool consecutiveFruits = checkEliminatedFruit(eliminated);
 
+	bool needUpdate = fullRow || consecutiveFruits;
+
 	// if somethins is eliminated
 	// recursively call eliminate untill no fruit can be eliminated
-	if (fullRow || consecutiveFruits)
+	while (fullRow || consecutiveFruits)
 	{
-		needsUpdate = true;
 		updateBoradAfterEliminating(eliminated);
-		eliminate(needsUpdate);
+
+		// reset eliminated
+		for (int i = 0; i < 10; ++i)
+		{
+			for (int j = 0; j < 20; ++j)
+			{
+				eliminated[i][j] = false;
+			}
+		}
+
+		fullRow = checkFullRow(eliminated);
+		consecutiveFruits = checkEliminatedFruit(eliminated);
+	}
+
+
+	if(needUpdate) {
+		updateVboOfBoardColor();
 	}
 
 	for (int i = 0; i < 10; ++i)
@@ -608,18 +633,6 @@ void eliminate(bool &needsUpdate) {
 	delete[] eliminated;
 }
 
-void eliminateBoardAndUpdate() {
-	bool needUpdate = false;
-
-	eliminate(needUpdate);
-
-	cout << "needsUpdate: " << needUpdate << endl;
-
-	if (needUpdate)
-	{
-		updateVBOAfterEliminating();
-	}
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // game initialization
@@ -881,6 +894,9 @@ void keyboard(unsigned char key, int x, int y)
 		case 'q':
 			exit (EXIT_SUCCESS);
 			break;
+		case 'p':// pause the game
+			paused = !paused;
+			break;
 		case 'r': // 'r' key restarts the game
 			restartGame();
 			break;
@@ -892,12 +908,37 @@ void keyboard(unsigned char key, int x, int y)
 void restartGame() {
 
 	printf("restarting game\n");
-	exit(0);
+
 	// empty the board
+	for (int i = 0; i < 10; ++i)
+	{
+		for (int j = 0; j < 20; ++j) {
+			board[i][j] = false;
+		}
+	}
+
+	// set all board colors to black
+	for (int i = 0; i < 1200; ++i)
+	{
+		boardcolours[i] = black;
+	}
+	updateVboOfBoardColor();
 
 	// create new title
 
+	newTitle();
+	displayTitle();
+
+
+
 	// resets line counters
+
+
+	// reset titmer
+	paused = false;
+	halted = false;
+
+	glutTimerFunc(timerIntervial, Timer, 0);
 
 }
 
@@ -907,11 +948,9 @@ void restartGame() {
 
 void Timer(int value) {
 
-	moveTitleDownAndSettle();
-
-	if (halted || paused)
+	if (!(halted || paused))
 	{
-		return;
+		moveTitleDownAndSettle();
 	}
 
 	glutTimerFunc(timerIntervial, Timer, 0);
@@ -936,7 +975,7 @@ void moveTitleDownAndSettle() {
 
 		cout << "after settle title"<< endl;
 		// try to eliminate
-		eliminateBoardAndUpdate();
+		eliminate();
 
 		cout << "before new title" << endl;
 		// generate new title
