@@ -454,6 +454,7 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
+			cout<< "downSide true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x][y-i] = true;
@@ -476,6 +477,7 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
+			cout << "right-hand side true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x+i][y] = true;
@@ -499,6 +501,7 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
+			cout << "northeast side true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x+i][y+i] = true;
@@ -521,6 +524,7 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
+			cout << "south-east side true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x+i][y-i] = true;
@@ -537,12 +541,14 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 // return true if there are fruits to be eliminated
 bool checkEliminatedFruit(bool **eliminated) {
 	bool flag = false;
-	for (int j = 20; j >= 0; --j)
+	for (int j = 19; j >= 0; --j)
 	{
 		for (int i = 0; i < 10; ++i)
 		{
-			if(checkSingleGrid(i, j, eliminated))
+			if(checkSingleGrid(i, j, eliminated)) {
+				cout << "this grid is fucking true:" << i <<' '<<j << endl; 
 				flag = true;
+			}
 		}
 	}
 
@@ -554,7 +560,7 @@ void updateBoradAfterEliminating(bool **eliminated) {
 	for (int i = 0; i < 10; ++i)
 	{
 		int count = 0;	// the distance to be shift down
-		for (int j = 0; j < 19; ++j)
+		for (int j = 0; j < 20; ++j)
 		{
 			if (eliminated[i][j])
 			{
@@ -571,6 +577,12 @@ void updateBoradAfterEliminating(bool **eliminated) {
 					boardcolours[vertexIndex] = newColor;
 				}
 			}
+		}
+
+		// set the top count board to be false
+		for (int j = 0; j < count; ++j)
+		{
+			board[i][19-count] = false;
 		}
 	}
 
@@ -603,6 +615,10 @@ void eliminate() {
 	// recursively call eliminate untill no fruit can be eliminated
 	while (fullRow || consecutiveFruits)
 	{
+
+		static int shit = 0;
+		cout << fullRow << ' ' << consecutiveFruits << " : " << shit << endl;
+
 		updateBoradAfterEliminating(eliminated);
 
 		// reset eliminated
@@ -913,7 +929,7 @@ void keyboard(unsigned char key, int x, int y)
 // accelerate title falling speed
 void accelerateTitle() {
 	// minimum time interval 400ms
-	if (timerIntervial > 600)
+	if (timerIntervial > 200)
 	{
 		timerIntervial -= 200;
 	} else {
