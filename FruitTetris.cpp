@@ -21,7 +21,8 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 
 using namespace std;
 
-int timerIntervial = 800;
+int timerIntervial = 1000;
+int gameRound = 0;
 
 bool halted = false;
 bool paused = false;
@@ -589,9 +590,6 @@ void eliminate() {
 		}
 	}
 
-	static int shit = 0;
-	shit++;
-	cout << "shit's working in here: " <<shit << endl;
 
 	// check full rows
 	bool fullRow = checkFullRow(eliminated);
@@ -816,6 +814,11 @@ void reshape(GLsizei w, GLsizei h)
 // Handle arrow key keypresses
 void special(int key, int x, int y)
 {
+	if (halted || paused)
+	{
+		return;
+	}
+
 	switch(key) {
 		case GLUT_KEY_UP: rotateTitle(); break;	// rotate title if "up"
 		case GLUT_KEY_LEFT: moveTitleToLeft(); break;
@@ -894,6 +897,9 @@ void keyboard(unsigned char key, int x, int y)
 		case 'q':
 			exit (EXIT_SUCCESS);
 			break;
+		case 'a':
+			accelerateTitle();
+			break;
 		case 'p':// pause the game
 			paused = !paused;
 			break;
@@ -904,10 +910,27 @@ void keyboard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+// accelerate title falling speed
+void accelerateTitle() {
+	// minimum time interval 400ms
+	if (timerIntervial > 600)
+	{
+		timerIntervial -= 200;
+	} else {
+		return;
+	}
+
+	// start a timer at once
+	// abondon the former timer
+	gameRound++;
+	glutTimerFunc(timerIntervial, Timer, gameRound);
+
+}
+
 // Restart game, when 'r' is pressed
 void restartGame() {
 
-	printf("restarting game\n");
+	cout << "restarting game" << endl;
 
 	// empty the board
 	for (int i = 0; i < 10; ++i)
@@ -938,7 +961,13 @@ void restartGame() {
 	paused = false;
 	halted = false;
 
-	glutTimerFunc(timerIntervial, Timer, 0);
+	// increment gameround counter
+	gameRound++;
+
+	// reset speed
+	timerIntervial = 1000;
+
+	glutTimerFunc(timerIntervial, Timer, gameRound);
 
 }
 
@@ -948,12 +977,18 @@ void restartGame() {
 
 void Timer(int value) {
 
+	if (value != gameRound)
+	{
+		// not this round's timer
+		return;
+	}
+
 	if (!(halted || paused))
 	{
 		moveTitleDownAndSettle();
 	}
 
-	glutTimerFunc(timerIntervial, Timer, 0);
+	glutTimerFunc(timerIntervial, Timer, gameRound);
 }
 
 
@@ -964,29 +999,30 @@ void Timer(int value) {
 
 void moveTitleDownAndSettle() {
 	if(moveTitleDown()) {
-		printf("title moved down\n");
 		// update title 
 		updateTitle();
 	} else {
 		// if cannot move title dowm
 		// settleTitle
-		printf("settleTitle\n");
 		settleTitle();
 
-		cout << "after settle title"<< endl;
 		// try to eliminate
 		eliminate();
 
-		cout << "before new title" << endl;
 		// generate new title
 		newTitle();
 
-		cout << "after new title" << endl;
 		// check whether game over
 		if (isGameOver())
 		{
 			// do nothing
 			halted = true;
+
+			// prompt game is over
+			cout << "Game Over" << endl
+				<< "press 'r' to restart" << endl
+				<< "press 'q' to quit" << endl 
+				<< endl;
 			return;
 		}
 
@@ -1016,8 +1052,6 @@ void idle(void)
 int main(int argc, char **argv)
 {
 
-	cout << (vec4(1,2,3,4)==vec4(1,2,3,4)) << endl << endl << endl;
-
 	srand(time(0));
 
 	glutInit(&argc, argv);
@@ -1033,9 +1067,9 @@ int main(int argc, char **argv)
 	glutReshapeFunc(reshape);
 	glutSpecialFunc(special);
 	glutKeyboardFunc(keyboard);
-	glutTimerFunc(timerIntervial, Timer, 0);	/* timer interval 1s */
+	glutTimerFunc(timerIntervial, Timer, gameRound);	/* timer interval 1s */
 	glutIdleFunc(idle);
 
-	glutMainLoop(); // Start main loop
+	glutMainLoop(); // Start main loopf
 	return 0;
 }
