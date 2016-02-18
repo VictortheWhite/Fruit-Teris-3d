@@ -1,17 +1,17 @@
 /*
-CMPT 361 Assignment 1 - FruitTetris implementation Sample Skeleton Code
-
-- This is ONLY a skeleton code showing:
-How to use multiple buffers to store different objects
-An efficient scheme to represent the grids and blocks
-
-- Compile and Run:
-Type make in terminal, then type ./FruitTetris
-
-This code is extracted from Connor MacLeod's (crmacleo@sfu.ca) assignment submission
-by Rui Ma (ruim@sfu.ca) on 2014-03-04. 
-
-Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
+ * Jiaxun He (Victor)
+ * 301295756
+ *
+ * CMPT 361 Assignment 1 
+ *
+ * - Compile and Run:
+ * Type make in terminal, then type ./FruitTetris
+ * 
+ * Written by Jiaxun He, on the basis of the skeleton code provided by the TA, a lot of changes though
+ *  
+ * And the skeleton code is extracted from Connor MacLeod's (crmacleo@sfu.ca) assignment submission
+ * by Rui Ma (ruim@sfu.ca) on 2014-03-04. 
+ * Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 */
 
 #include "include/Angel.h"
@@ -454,7 +454,6 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
-			cout<< "downSide true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x][y-i] = true;
@@ -477,7 +476,6 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
-			cout << "right-hand side true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x+i][y] = true;
@@ -501,7 +499,6 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
-			cout << "northeast side true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x+i][y+i] = true;
@@ -524,7 +521,6 @@ bool checkSingleGrid(int x, int y, bool **eliminated) {
 		if (count >= 3)
 		{
 			flag = true;
-			cout << "south-east side true" << endl;
 			for (int i = 0; i < count; ++i)
 			{
 				eliminated[x+i][y-i] = true;
@@ -546,7 +542,6 @@ bool checkEliminatedFruit(bool **eliminated) {
 		for (int i = 0; i < 10; ++i)
 		{
 			if(checkSingleGrid(i, j, eliminated)) {
-				cout << "this grid is fucking true:" << i <<' '<<j << endl; 
 				flag = true;
 			}
 		}
@@ -615,9 +610,6 @@ void eliminate() {
 	// recursively call eliminate untill no fruit can be eliminated
 	while (fullRow || consecutiveFruits)
 	{
-
-		static int shit = 0;
-		cout << fullRow << ' ' << consecutiveFruits << " : " << shit << endl;
 
 		updateBoradAfterEliminating(eliminated);
 
