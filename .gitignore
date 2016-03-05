@@ -2,4 +2,4 @@ FruitTetris
 FruitTetris.o
 depend
 include/InitShader.o
-run
+run.sh
