@@ -31,16 +31,16 @@ bool paused = false;
 int xsize = 400; 
 int ysize = 720;
 
-// current title
-vec2 title[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the title, on the grid
-vec2 titlePos = vec2(5, 19); // The position of the current title using grid coordinates ((0,0) is the bottom left corner)
+// current tile
+vec2 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
+vec2 tilePos = vec2(5, 19); // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
 
-// the type and rotation of the current title
-int titleType;
+// the type and rotation of the current tile
+int tileType;
 int rotationStatus;
 
-// An array storing all possible orientations of all possible titles
-// The 'title' array will always be some element [i][j] of this array (an array of vec2)
+// An array storing all possible orientations of all possible tiles
+// The 'tile' array will always be some element [i][j] of this array (an array of vec2)
 vec2 allRotationsLshape[4][4] = {
 	{vec2(0,0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
 		{vec2(0,0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
@@ -94,14 +94,14 @@ vec4 purple = vec4(1.0, 0.0, 1.0, 1.0);
 
 vec4 fruitColors[5] = {orange, red, green, blue, purple};
 
-// furit colors of current title
-vec4 currentTitleFruitColors[4];
+// furit colors of current tile
+vec4 currenttileFruitColors[4];
 
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20]; 
 
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
-//Initially, all will be set to black. As titles are placed, sets of 6 vertices (2 triangles; 1 square)
+//Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
 vec4 boardcolours[1200];
 
@@ -122,16 +122,16 @@ GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 // fuc decalrations
 
 // for sepcial keys(arrow keys)
-void rotateTitle();
-void accelerateTitle();
+void rotatetile();
+void acceleratetile();
 void restartGame();
 
-void moveTitleToLeft();
-void moveTitleToRight();
-bool moveTitleDown();
-void moveTitleDownAndSettle();
+void movetileToLeft();
+void movetileToRight();
+bool movetileDown();
+void movetileDownAndSettle();
 
-void displayTitle();
+void displaytile();
 void Timer(int);
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -185,7 +185,7 @@ vec4 getGridColor(vec2 pos) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// title operations
+// tile operations
 
 // return true if occupied or out of board
 bool occupied(int x, int y) {
@@ -202,31 +202,31 @@ bool occupied(int x, int y) {
 }
 
 // return true if collide, false otherwise
-bool collide(vec2* Title, vec2 direction) {
-	return occupied(titlePos.x + Title[0].x + direction.x, titlePos.y + Title[0].y + direction.y)
-		|| occupied(titlePos.x + Title[1].x + direction.x, titlePos.y + Title[1].y + direction.y)
-		|| occupied(titlePos.x + Title[2].x + direction.x, titlePos.y + Title[2].y + direction.y)
-		|| occupied(titlePos.x + Title[3].x + direction.x, titlePos.y + Title[3].y + direction.y);
+bool collide(vec2* tile, vec2 direction) {
+	return occupied(tilePos.x + tile[0].x + direction.x, tilePos.y + tile[0].y + direction.y)
+		|| occupied(tilePos.x + tile[1].x + direction.x, tilePos.y + tile[1].y + direction.y)
+		|| occupied(tilePos.x + tile[2].x + direction.x, tilePos.y + tile[2].y + direction.y)
+		|| occupied(tilePos.x + tile[3].x + direction.x, tilePos.y + tile[3].y + direction.y);
 }
 
-// Given (x,y), tries to move the title x squares to the right and y squares down
-// Returns true if the title was successfully moved, or false if there was some issue
-bool moveTitle(vec2 direction) {
-	// if not collide, move title
-	if(!collide(title, direction)) {
+// Given (x,y), tries to move the tile x squares to the right and y squares down
+// Returns true if the tile was successfully moved, or false if there was some issue
+bool movetile(vec2 direction) {
+	// if not collide, move tile
+	if(!collide(tile, direction)) {
 		/*
-		titlePos.x += direction.x;
-		titlePos.y += direction.y;
+		tilePos.x += direction.x;
+		tilePos.y += direction.y;
 		*/
-		titlePos += direction;
+		tilePos += direction;
 		return true;
 	}
 	// otherwise return false
 	return false;
 }
 
-// Places the current title
-void settleTitle()
+// Places the current tile
+void settleTile()
 {
 	// update the board vertex colour VBO
 	for (int i = 0; i < 4; i++)
@@ -234,8 +234,8 @@ void settleTitle()
 		for (int j = 0; j < 6; j++)
 		{
 			// each square has 6 vertex
-			int vIndex = 6 * (10 * (titlePos.y + title[i].y) + (titlePos.x + title[i].x)) + j;
-			boardcolours[vIndex] = currentTitleFruitColors[i];
+			int vIndex = 6 * (10 * (tilePos.y + tile[i].y) + (tilePos.x + tile[i].x)) + j;
+			boardcolours[vIndex] = currenttileFruitColors[i];
 		}
 	}
 
@@ -248,47 +248,60 @@ void settleTitle()
 	// update occupied cells array
 	for (int i = 0; i < 4; ++i)
 	{
-		int x = titlePos.x + title[i].x;
-		int y = titlePos.y + title[i].y;
+		int x = tilePos.x + tile[i].x;
+		int y = tilePos.y + tile[i].y;
 		board[x][y] = true;
 	}
 }
 
-// When the current title is moved or rotated (or created), update the VBO containing its vertex position data
-void updateTitle() {
-	// Bind the VBO containing current title vertex positions
+// When the current tile is moved or rotated (or created), update the VBO containing its vertex position data
+void updateTile() {
+	// Bind the VBO containing current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]); 
 
-	// For each of the 4 'cells' of the title,
+	// For each of the 4 'cells' of the tile,
 	for (int i = 0; i < 4; i++) 
 	{
 		// Calculate the grid coordinates of the cell
-		GLfloat x = titlePos.x + title[i].x; 
-		GLfloat y = titlePos.y + title[i].y;
+		GLfloat x = tilePos.x + tile[i].x; 
+		GLfloat y = tilePos.y + tile[i].y;
 
-		// Create the 4 corners of the square - these vertices are using location in pixels
+		// Create the 8 corners of the cubic - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), .4, 1); 
-		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), .4, 1);
-		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), .4, 1);
-		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), .4, 1);
+		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), -16.5, 1); 
+		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), -16.5, 1);
+		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), -16.5, 1);
+		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), -16.5, 1);
 
-		// Two points are used by two triangles each
-		vec4 newpoints[6] = {p1, p2, p3, p2, p3, p4}; 
+		vec4 p5 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 16.5, 1); 
+		vec4 p6 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 16.5, 1);
+		vec4 p7 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 16.5, 1);
+		vec4 p8 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 16.5, 1);
+
+
+		// Two points are used by two triangles(6 vertices) each
+		// 6 faces, 6 * 6 vettices
+		vec4 newpoints[6 * 6] = {p1, p2, p3, p2, p3, p4,	// front face
+								 p5, p6, p7, p6, p7, p8,	// back face
+								 p1, p2, p5, p2, p5, p6, 	// left face
+								 p3, p4, p7, p4, p7, p8,	// right face
+								 p1, p3, p5, p3, p5, p7,	// upper face
+								 p2, p4, p6, p4, p6, p8
+								}; 
 
 		// Put new data in the VBO
-		glBufferSubData(GL_ARRAY_BUFFER, i*6*sizeof(vec4), 6*sizeof(vec4), newpoints); 
+		glBufferSubData(GL_ARRAY_BUFFER, i*6*6*sizeof(vec4), 6*6*sizeof(vec4), newpoints); 
 	}
 
 	glBindVertexArray(0);
 }
 
-// whether a title is out of upper bound
-// used when generating position of new title
-bool isTitleOutOfUpperBound() {
+// whether a tile is out of upper bound
+// used when generating position of new tile
+bool istileOutOfUpperBound() {
 	for (int i = 0; i < 4; ++i)
 	{
-		if (titlePos.y + title[i].y > 19)
+		if (tilePos.y + tile[i].y > 19)
 		{
 			return true;
 		}
@@ -297,10 +310,10 @@ bool isTitleOutOfUpperBound() {
 	return false;
 }
 
-bool isTitleOutOfLeftBound() {
+bool istileOutOfLeftBound() {
 	for (int i = 0; i < 4; ++i)
 	{
-		if (titlePos.x + title[i].x < 0)
+		if (tilePos.x + tile[i].x < 0)
 		{
 			return true;
 		}
@@ -309,10 +322,10 @@ bool isTitleOutOfLeftBound() {
 	return false;
 }
 
-bool isTitleOutOfRightBound() {
+bool istileOutOfRightBound() {
 	for (int i = 0; i < 4; ++i)
 	{
-		if (titlePos.x + title[i].x > 9)
+		if (tilePos.x + tile[i].x > 9)
 		{
 			return true;
 		}
@@ -321,69 +334,69 @@ bool isTitleOutOfRightBound() {
 	return false;
 }
 
-// Called at the start of play and every time a title is placed
-void newTitle()
+// Called at the start of play and every time a tile is placed
+void newTile()
 {
 
 
-	int titleXPos = randomNum(10);
-	int titleRotation = randomNum(4);
+	int tileXPos = randomNum(10);
+	int tileRotation = randomNum(4);
 
-	titlePos = vec2(titleXPos , 19); // Put the title at the top of the board
-	titleType = randomNum(4);	// random type of title
+	tilePos = vec2(tileXPos , 19); // Put the tile at the top of the board
+	tileType = randomNum(4);	// random type of tile
 
-	// Update the geometry VBO of current title
+	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
-		title[i] = allRotationsShapes[titleType][titleRotation][i]; // Get the 4 pieces of the new title
+		tile[i] = allRotationsShapes[tileType][tileRotation][i]; // Get the 4 pieces of the new tile
 	}
 
-	// adjust position of title to fit in the screen
-	if (isTitleOutOfUpperBound())
+	// adjust position of tile to fit in the screen
+	if (istileOutOfUpperBound())
 	{
-		titlePos.y += -1;
-		if (isTitleOutOfUpperBound())
+		tilePos.y += -1;
+		if (istileOutOfUpperBound())
 		{
-			titlePos.y += -1;
+			tilePos.y += -1;
 		}
 	}
-	if (isTitleOutOfRightBound())
+	if (istileOutOfRightBound())
 	{
-		titlePos.x += -1;
-		if (isTitleOutOfRightBound())
+		tilePos.x += -1;
+		if (istileOutOfRightBound())
 		{
-			titlePos.x += -1;
+			tilePos.x += -1;
 		}
 	}
-	if (isTitleOutOfLeftBound())
+	if (istileOutOfLeftBound())
 	{
-		titlePos.x += 1;
-		if (isTitleOutOfLeftBound())
+		tilePos.x += 1;
+		if (istileOutOfLeftBound())
 		{
-			titlePos.x += 1;
+			tilePos.x += 1;
 		}
 	}
 
 
-	updateTitle(); 
+	updateTile(); 
 
 
 	// generate random color for each fruit
 	for (int i = 0; i < 4; i++)
 	{
-		currentTitleFruitColors[i] = fruitColors[randomNum(5)];
+		currenttileFruitColors[i] = fruitColors[randomNum(5)];
 	}
 
 }
 
-void displayTitle() {
-	// Update the color VBO of current title
-	vec4 newcolours[24];
+void displaytile() {
+	// Update the color VBO of current tile
+	vec4 newcolours[24 * 6];
 
-	for (int i = 0; i < 24; i++) {
-		newcolours[i] = currentTitleFruitColors[i/6]; 
+	for (int i = 0; i < 24 * 6; i++) {
+		newcolours[i] = currenttileFruitColors[i/(6 *6)]; 
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current title vertex colours
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current tile vertex colours
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours); // Put the colour data in the VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -395,7 +408,7 @@ void displayTitle() {
 
 // return true if game is over
 bool isGameOver() {
-	return collide(title, vec2(0,0));
+	return collide(tile, vec2(0,0));
 }
 
 // set full row's eliminated to be true
@@ -732,21 +745,21 @@ void initBoard()
 	glEnableVertexAttribArray(vColor);
 }
 
-// No geometry for current title initially
-void initCurrentTitle()
+// No geometry for current tile initially
+void initCurrenttile()
 {
 	glBindVertexArray(vaoIDs[2]);
 	glGenBuffers(2, &vboIDs[4]);
 
-	// Current title vertex positions
+	// Current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 24*6*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
-	// Current title vertex colours
+	// Current tile vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 24*6*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
@@ -761,21 +774,25 @@ void init()
 	vPosition = glGetAttribLocation(program, "vPosition");
 	vColor = glGetAttribLocation(program, "vColor");
 
+	ModelView = glGetAttribLocation(program, "ModelView");
+	Projection = glGetAttribLocation(program, "Projection");
+
+
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
 	glGenVertexArrays(3, &vaoIDs[0]);
 
-	// Initialize the grid, the board, and the current title
-	initGrid();
-	initBoard();
-	initCurrentTitle();
+	// Initialize the grid, the board, and the current tile
+	//initGrid();
+	//initBoard();
+	initCurrenttile();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
 	locysize = glGetUniformLocation(program, "ysize");
 
 	// Game initialization
-	newTitle(); // create new next title
-	displayTitle();
+	newTile(); // create new next tile
+	displaytile();
 
 	// set to default
 	glBindVertexArray(0);
@@ -793,15 +810,18 @@ void display()
 	glUniform1i(locxsize, xsize); // x and y sizes are passed to the shader program to maintain shape of the vertices on screen
 	glUniform1i(locysize, ysize);
 
+		
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the grid cells (to be drawn first)
 	glDrawArrays(GL_TRIANGLES, 0, 1200); // Draw the board (10*20*2 = 400 triangles)
+	
+	
+	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current tile (to be drawn on top of the board)
+	glDrawArrays(GL_TRIANGLES, 0, 24 * 6); // Draw the current tile (48 triangles)
 
-	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current title (to be drawn on top of the board)
-	glDrawArrays(GL_TRIANGLES, 0, 24); // Draw the current title (8 triangles)
-
+	
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glDrawArrays(GL_LINES, 0, 64); // Draw the grid lines (21+11 = 32 lines)
-
+	
 
 	glutSwapBuffers();
 }
@@ -828,64 +848,64 @@ void special(int key, int x, int y)
 	}
 
 	switch(key) {
-		case GLUT_KEY_UP: rotateTitle(); break;	// rotate title if "up"
-		case GLUT_KEY_LEFT: moveTitleToLeft(); break;
-		case GLUT_KEY_RIGHT: moveTitleToRight(); break;
-		case GLUT_KEY_DOWN: moveTitleDownAndSettle(); break;
+		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
+		case GLUT_KEY_LEFT: movetileToLeft(); break;
+		case GLUT_KEY_RIGHT: movetileToRight(); break;
+		case GLUT_KEY_DOWN: movetileDownAndSettle(); break;
 		default: break;
 	}
 }
 
 // special key actions
 
-// Rotates the current title, when up is pressed
-void rotateTitle() {      
+// Rotates the current tile, when up is pressed
+void rotatetile() {      
 	// new rotation
 	int newRotation = rotationStatus;
 
 	newRotation = (newRotation + 1) % 4;
 
 	// check whether possible to rotate
-	if(collide(allRotationsShapes[titleType][newRotation], vec2(0,0))) {
-		// if the rotated title will collide
-		if(!collide(allRotationsShapes[titleType][newRotation], vec2(1,0))) {
+	if(collide(allRotationsShapes[tileType][newRotation], vec2(0,0))) {
+		// if the rotated tile will collide
+		if(!collide(allRotationsShapes[tileType][newRotation], vec2(1,0))) {
 			// if move to the right by 1 will work
-			titlePos.x += 1;
-		} else if(!collide(allRotationsShapes[titleType][newRotation], vec2(-1,0))) {
+			tilePos.x += 1;
+		} else if(!collide(allRotationsShapes[tileType][newRotation], vec2(-1,0))) {
 			// if move to the left by 1 will work
-			titlePos.x += -1;
-		} else if(!collide(allRotationsShapes[titleType][newRotation], vec2(2, 0))) {
+			tilePos.x += -1;
+		} else if(!collide(allRotationsShapes[tileType][newRotation], vec2(2, 0))) {
 			// if move to the right by 2 will work
-			titlePos.x += 2;
-		} else if(!collide(allRotationsShapes[titleType][newRotation], vec2(-2, 0))) {
+			tilePos.x += 2;
+		} else if(!collide(allRotationsShapes[tileType][newRotation], vec2(-2, 0))) {
 			// if move to the left by 2 will work
-			titlePos.x += -2;
+			tilePos.x += -2;
 		} else {
 			// cannot rotate
 			return;
 		}
 	}
 
-	// rotate and update title
+	// rotate and update tile
 	rotationStatus = newRotation;
-	copyArray4OfVec2(title, allRotationsShapes[titleType][newRotation]);
-	updateTitle();
+	copyArray4OfVec2(tile, allRotationsShapes[tileType][newRotation]);
+	updateTile();
 }
-// Move the title to the left for 1 grid, when left is pressed
-void moveTitleToLeft() {
+// Move the tile to the left for 1 grid, when left is pressed
+void movetileToLeft() {
 	vec2 direction = vec2(-1, 0);
-	if (moveTitle(direction))
+	if (movetile(direction))
 	{
-		updateTitle();
+		updateTile();
 	}
 
 }
-// Move the title to the right for 1 grid, when right is pressed
-void moveTitleToRight() {
+// Move the tile to the right for 1 grid, when right is pressed
+void movetileToRight() {
 	vec2 direction = vec2(1, 0);
-	if (moveTitle(direction))
+	if (movetile(direction))
 	{
-		updateTitle();
+		updateTile();
 	}
 }
 
@@ -906,7 +926,7 @@ void keyboard(unsigned char key, int x, int y)
 			exit (EXIT_SUCCESS);
 			break;
 		case 'a':
-			accelerateTitle();
+			acceleratetile();
 			break;
 		case 'p':// pause the game
 			paused = !paused;
@@ -918,8 +938,8 @@ void keyboard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-// accelerate title falling speed
-void accelerateTitle() {
+// accelerate tile falling speed
+void acceleratetile() {
 	// minimum time interval 400ms
 	if (timerIntervial > 200)
 	{
@@ -955,10 +975,10 @@ void restartGame() {
 	}
 	updateVboOfBoardColor();
 
-	// create new title
+	// create new tile
 
-	newTitle();
-	displayTitle();
+	newTile();
+	displaytile();
 
 
 
@@ -993,32 +1013,32 @@ void Timer(int value) {
 
 	if (!(halted || paused))
 	{
-		moveTitleDownAndSettle();
+		movetileDownAndSettle();
 	}
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
 }
 
 
-// Move title down by 1
+// Move tile down by 1
 // check whether it should be settled
 // do elimination
 // update board
 
-void moveTitleDownAndSettle() {
-	if(moveTitleDown()) {
-		// update title 
-		updateTitle();
+void movetileDownAndSettle() {
+	if(movetileDown()) {
+		// update tile 
+		updateTile();
 	} else {
-		// if cannot move title dowm
-		// settleTitle
-		settleTitle();
+		// if cannot move tile dowm
+		// settleTile
+		settleTile();
 
 		// try to eliminate
 		eliminate();
 
-		// generate new title
-		newTitle();
+		// generate new tile
+		newTile();
 
 		// check whether game over
 		if (isGameOver())
@@ -1034,15 +1054,15 @@ void moveTitleDownAndSettle() {
 			return;
 		}
 
-		// display new title
-		displayTitle();
+		// display new tile
+		displaytile();
 	}
 }
 
-// move title down by 1 grid
-bool moveTitleDown() {
+// move tile down by 1 grid
+bool movetileDown() {
 	vec2 direction = vec2(0,-1);
-	return moveTitle(direction);
+	return movetile(direction);
 }
 
 
