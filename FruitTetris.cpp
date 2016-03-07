@@ -28,8 +28,8 @@ bool halted = false;
 bool paused = false;
 
 // xsize and ysize represent the window size - updated if window is reshaped to prevent stretching of the game
-int xsize = 400; 	// used to be 400
-int ysize = 720;	// used to be 720
+int xsize = 600; 	// used to be 400
+int ysize = 820;	// used to be 720
 int zsize = 33;
 
 // current tile
@@ -42,7 +42,7 @@ int rotationStatus;
 
 
 // constants
-static const int numOfGridPoints = 570; // 64 * 2 + 11 * 21 * 2
+static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
@@ -127,6 +127,19 @@ GLuint locP;
 mat4 model_view;
 mat4 projection;
 
+// viewing transformation parameters
+GLfloat radius = 1500;
+GLfloat theta = 0.0;
+GLfloat phi = 0.0;
+
+// projection transformation parameters
+
+GLfloat fovy = 45.0;	// Field-of0View in Y direction angle (degrees)
+GLfloat aspect = 1.0*xsize/ysize;
+GLfloat zNear = 10;
+GLfloat zFar = 200;
+
+
 // VAO and VBO
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
 GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
@@ -144,6 +157,9 @@ void moveTileToLeft();
 void moveTileToRight();
 bool moveTileDown();
 void moveTileDownAndSettle();
+
+void moveCameraClockwise();
+void moveCameraCounterlockwise();
 
 void displaytile();
 void Timer(int);
@@ -457,8 +473,8 @@ void initGrid()
 	{
 		for (int j = 0; j < 21; ++j)
 		{
-			gridpoints[128 + 22 * i + 2 * j] = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 16.5, 1);
-			gridpoints[128 + 22 * i + 2 * j + 1] = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), -16.5, 1);
+			gridpoints[128 + 22 * j + 2 * i] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), 16.5, 1);
+			gridpoints[128 + 22 * j + 2 * i + 1] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), -16.5, 1);
 		}
 	}
 
@@ -633,13 +649,16 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// projection
-	projection = Perspective(45, 1.0*xsize/ysize, -20, 200);
+	projection = Perspective(fovy, aspect, zNear, zFar);
 
-	// translate center to origin
-	model_view = Translate(-xsize/2, 0, 0);
+	// model_view
+	model_view = Scale(2.0/33, 2.0/33, 2.0/33);
 
-	vec4 eye(0, ysize/2, 1500, 0);
-	vec4 at(0, ysize/2, 0, 0);
+	vec4 eye(radius*sin(theta)*cos(phi),
+			 radius*sin(theta)*sin(phi) + 500, 
+			 radius*cos(theta), 
+			 1.0);
+	vec4 at(0, 20/2, 0, 1.0);
 	vec4 up(0, 1, 0, 0);
 
 	model_view *= LookAt(eye, at, up);
@@ -688,6 +707,16 @@ void special(int key, int x, int y)
 		return;
 	}
 
+	int mode = glutGetModifiers();
+	if (mode == GLUT_ACTIVE_CTRL)
+	{
+		switch(key) {
+			case GLUT_KEY_LEFT: moveCameraCounterlockwise(); return;
+			case GLUT_KEY_RIGHT:moveCameraClockwise(); return;
+			default: break;
+		}
+	}
+
 	switch(key) {
 		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
 		case GLUT_KEY_LEFT: moveTileToLeft(); break;
@@ -698,6 +727,14 @@ void special(int key, int x, int y)
 }
 
 // special key actions
+
+void moveCameraClockwise() {
+	theta += 0.1;
+}
+
+void moveCameraCounterlockwise() {
+	theta -= 0.1;
+}
 
 // Rotates the current tile, when up is pressed
 void rotatetile() {      
