@@ -519,7 +519,7 @@ void initBoard()
 	// *** Generate the geometric data
 	vec4 boardpoints[1200 * 6];
 	for (int i = 0; i < 1200 * 6; i++) {
-		boardcolours[i] = black; // Let the empty cells on the board be black
+		boardcolours[i] = orange; // Let the empty cells on the board be black
 	}
 
 	// Each cell is a square (2 triangles with 6 vertices)
@@ -536,7 +536,7 @@ void initBoard()
 			vec4 p7 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0),  16.5, 1);
 			vec4 p8 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0),  16.5, 1);
 
-			int startingIndex = 6*(10*i + j);
+			int startingIndex = 36*(10*i + j);
 
 			setCubicFace(boardpoints, startingIndex,    p1, p2, p3, p4);	// front
 			setCubicFace(boardpoints, startingIndex+6,  p5, p6, p7, p8);	// back
