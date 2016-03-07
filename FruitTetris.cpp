@@ -28,8 +28,8 @@ bool halted = false;
 bool paused = false;
 
 // xsize and ysize represent the window size - updated if window is reshaped to prevent stretching of the game
-int xsize = 400; 
-int ysize = 720;
+int xsize = 400; 	// used to be 400
+int ysize = 720;	// used to be 720
 int zsize = 33;
 
 // current tile
@@ -633,13 +633,16 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// projection
-	//projection = Perspective(45, 1.0*xsize/ysize, 10, 200);
+	projection = Perspective(45, 1.0*xsize/ysize, -20, 200);
 
-	projection = mat4(1.0);
+	// translate center to origin
+	model_view = Translate(-xsize/2, 0, 0);
 
-	//model_view = Scale(1.0/33.0, 1.0/3.0, 1.0/33.0);
+	vec4 eye(0, ysize/2, 1500, 0);
+	vec4 at(0, ysize/2, 0, 0);
+	vec4 up(0, 1, 0, 0);
 
-	model_view = mat4(1.0);
+	model_view *= LookAt(eye, at, up);
 
 	glUniformMatrix4fv(locM_V, 1, GL_TRUE, model_view);
 	glUniformMatrix4fv(locP, 1, GL_TRUE, projection);
