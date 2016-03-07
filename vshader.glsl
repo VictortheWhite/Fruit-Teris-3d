@@ -22,8 +22,7 @@ void main()
 	// Then, multiply by the scale matrix to maintain size after the window is reshaped
 	vec4 newPos = vPosition + vec4(-200, -360, 0, 0);
 	
-	gl_Position =  scale * newPos;
-	//gl_Position = Projection * ModelView * scale * newPos; 
+	gl_Position = Projection * ModelView * scale * newPos;
 
 	color = vColor;	
 } 

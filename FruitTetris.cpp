@@ -108,7 +108,7 @@ bool board[10][20];
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
-vec4 boardcolours[1200];
+vec4 boardcolours[1200 * 6];
 
 
 
@@ -140,10 +140,10 @@ void rotatetile();
 void acceleratetile();
 void restartGame();
 
-void movetileToLeft();
-void movetileToRight();
-bool movetileDown();
-void movetileDownAndSettle();
+void moveTileToLeft();
+void moveTileToRight();
+bool moveTileDown();
+void moveTileDownAndSettle();
 
 void displaytile();
 void Timer(int);
@@ -225,7 +225,7 @@ bool collide(vec2* tile, vec2 direction) {
 
 // Given (x,y), tries to move the tile x squares to the right and y squares down
 // Returns true if the tile was successfully moved, or false if there was some issue
-bool movetile(vec2 direction) {
+bool moveTile(vec2 direction) {
 	// if not collide, move tile
 	if(!collide(tile, direction)) {
 		/*
@@ -299,8 +299,8 @@ void updateTile() {
 								 p5, p6, p7, p6, p7, p8,	// back face
 								 p1, p2, p5, p2, p5, p6, 	// left face
 								 p3, p4, p7, p4, p7, p8,	// right face
-								 p1, p3, p5, p3, p5, p7,	// upper face
-								 p2, p4, p6, p4, p6, p8
+								 p1, p3, p5, p3, p5, p7,	// top face
+								 p2, p4, p6, p4, p6, p8		// bottom
 								}; 
 
 		// Put new data in the VBO
@@ -425,246 +425,6 @@ bool isGameOver() {
 	return collide(tile, vec2(0,0));
 }
 
-// set full row's eliminated to be true
-// return true if exists full row to be eliminated
-bool checkFullRow(bool **eliminated) {
-	int flag = false;
-	for (int j = 0; j < 20; ++j)
-	{
-		bool fullRow = true;
-		for (int i = 0; i < 10; ++i)
-		{
-			if (!board[i][j])
-			{
-				fullRow = false;
-			}
-		}
-		// if full row, set eliminated to be true
-		if (fullRow)
-		{
-			flag = true;
-			for (int i = 0; i < 10; ++i)
-			{
-				eliminated[i][j] = true;
-			}
-		}
-	}
-
-	return flag;
-}
-
-// check a grid's down, right-hand, northeast and sourtheast side
-// return true if fruits to be eliminated
-
-bool checkSingleGrid(int x, int y, bool **eliminated) {
-
-	bool flag = false;
-	vec4 thisGridColor = getGridColor(x, y);
-	if (isVec4Equal(thisGridColor, black))
-	{
-		return false;;
-	}
-
-	// check down side
-	if (y >= 2)
-	{
-		int count = 1;
-		
-		while(isVec4Equal(thisGridColor, getGridColor(x, y - count))) {
-			count++;
-			if (y-count < 0)
-			{
-				break;
-			}
-		}
-
-		if (count >= 3)
-		{
-			flag = true;
-			for (int i = 0; i < count; ++i)
-			{
-				eliminated[x][y-i] = true;
-			}
-		}
-	}
-
-	
-	// check right-hand side
-	if(x < 8) {
-		int count = 1;
-		while(isVec4Equal(thisGridColor, getGridColor(x+count, y))) {
-			count++;
-			if (x+count > 9)
-			{
-				break;
-			}
-		}
-
-		if (count >= 3)
-		{
-			flag = true;
-			for (int i = 0; i < count; ++i)
-			{
-				eliminated[x+i][y] = true;
-			}
-		}
-
-	}
-	
-	// check north-east side
-	if (y < 18 && x < 8)
-	{
-		int count = 1;
-		while(isVec4Equal(thisGridColor, getGridColor(x+count, y+count))) {
-			count++;
-			if (x+count> 9 || y+count > 19)
-			{
-				break;
-			}
-		}
-
-		if (count >= 3)
-		{
-			flag = true;
-			for (int i = 0; i < count; ++i)
-			{
-				eliminated[x+i][y+i] = true;
-			}
-		}
-	}
-
-	// check south-east side
-	if (y >= 2 && x < 8)
-	{
-		int count = 1;
-		while(isVec4Equal(thisGridColor, getGridColor(x+count, y-count))) {
-			count++;
-			if (x+count > 9 || y-count < 0)
-			{
-				break;
-			}
-		}
-
-		if (count >= 3)
-		{
-			flag = true;
-			for (int i = 0; i < count; ++i)
-			{
-				eliminated[x+i][y-i] = true;
-			}
-		}
-	}
-
-	return flag;
-	
-
-}
-
-// check all grids for 4 consecutive smae fruits
-// return true if there are fruits to be eliminated
-bool checkEliminatedFruit(bool **eliminated) {
-	bool flag = false;
-	for (int j = 19; j >= 0; --j)
-	{
-		for (int i = 0; i < 10; ++i)
-		{
-			if(checkSingleGrid(i, j, eliminated)) {
-				flag = true;
-			}
-		}
-	}
-
-	return flag;
-
-}
-
-void updateBoradAfterEliminating(bool **eliminated) {
-	for (int i = 0; i < 10; ++i)
-	{
-		int count = 0;	// the distance to be shift down
-		for (int j = 0; j < 20; ++j)
-		{
-			if (eliminated[i][j])
-			{
-				count++;
-			} else {
-				// move grid down by count
-				// update occupied board
-				board[i][j-count] = board[i][j];
-				// update color
-				vec4 newColor = getGridColor(i, j);
-				for (int k = 0; k < 6; ++k)
-				{
-					int vertexIndex = 6 * ( 10 * ( j - count ) + i) + k;
-					boardcolours[vertexIndex] = newColor;
-				}
-			}
-		}
-
-		// set the top count board to be false
-		for (int j = 0; j < count; ++j)
-		{
-			board[i][19-count] = false;
-		}
-	}
-
-}
-
-
-
-void eliminate() {
-	bool **eliminated = new bool*[10];	// true for grid to be eliminated
-
-	for (int i = 0; i < 10; ++i)
-	{
-		eliminated[i] = new bool[20];
-		for (int j = 0; j < 20; ++j)
-		{
-			eliminated[i][j] = false;
-		}
-	}
-
-
-	// check full rows
-	bool fullRow = checkFullRow(eliminated);
-
-	// check consecutive same fruits
-	bool consecutiveFruits = checkEliminatedFruit(eliminated);
-
-	bool needUpdate = fullRow || consecutiveFruits;
-
-	// if somethins is eliminated
-	// recursively call eliminate untill no fruit can be eliminated
-	while (fullRow || consecutiveFruits)
-	{
-
-		updateBoradAfterEliminating(eliminated);
-
-		// reset eliminated
-		for (int i = 0; i < 10; ++i)
-		{
-			for (int j = 0; j < 20; ++j)
-			{
-				eliminated[i][j] = false;
-			}
-		}
-
-		fullRow = checkFullRow(eliminated);
-		consecutiveFruits = checkEliminatedFruit(eliminated);
-	}
-
-
-	if(needUpdate) {
-		updateVboOfBoardColor();
-	}
-
-	for (int i = 0; i < 10; ++i)
-	{
-		delete[] eliminated[i];
-	}
-
-	delete[] eliminated;
-}
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -727,30 +487,59 @@ void initGrid()
 }
 
 
+void setCubicFace(vec4 *boardpoints, int startingIndex, 
+				  vec4 p1, vec4 p2, vec4 p3, vec4 p4) {
+	boardpoints[startingIndex] 	   = p1;
+	boardpoints[startingIndex + 1] = p2;
+	boardpoints[startingIndex + 2] = p3;
+	boardpoints[startingIndex + 3] = p2;
+	boardpoints[startingIndex + 4] = p3;
+	boardpoints[startingIndex + 5] = p4;
+
+}
+
 void initBoard()
 {
 	// *** Generate the geometric data
-	vec4 boardpoints[1200];
-	for (int i = 0; i < 1200; i++) {
-		boardcolours[i] = orange; // Let the empty cells on the board be black
+	vec4 boardpoints[1200 * 6];
+	for (int i = 0; i < 1200 * 6; i++) {
+		boardcolours[i] = black; // Let the empty cells on the board be black
 	}
 
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
 		for (int j = 0; j < 10; j++)
 		{		
-			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 1.0, 1);
-			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), 1.0, 1);
-			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), 1.0, 1);
-			vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), 1.0, 1);
-			
+			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), -16.5, 1);
+			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), -16.5, 1);
+			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), -16.5, 1);
+			vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), -16.5, 1);
+
+			vec4 p5 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0),  16.5, 1); 
+			vec4 p6 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0),  16.5, 1);
+			vec4 p7 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0),  16.5, 1);
+			vec4 p8 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0),  16.5, 1);
+
+			int startingIndex = 6*(10*i + j);
+
+			setCubicFace(boardpoints, startingIndex,    p1, p2, p3, p4);	// front
+			setCubicFace(boardpoints, startingIndex+6,  p5, p6, p7, p8);	// back
+			setCubicFace(boardpoints, startingIndex+12, p1, p2, p5, p6);	// left
+			setCubicFace(boardpoints, startingIndex+18, p3, p4, p7, p8);	// right
+			setCubicFace(boardpoints, startingIndex+24, p1, p3, p5, p7);	// top
+			setCubicFace(boardpoints, startingIndex+30, p2, p4, p6, p8);	// bottom
+
+			/*
 			// Two points are reused
+			// front
 			boardpoints[6*(10*i + j)    ] = p1;
 			boardpoints[6*(10*i + j) + 1] = p2;
 			boardpoints[6*(10*i + j) + 2] = p3;
 			boardpoints[6*(10*i + j) + 3] = p2;
 			boardpoints[6*(10*i + j) + 4] = p3;
 			boardpoints[6*(10*i + j) + 5] = p4;
+			*/
+
 		}
 	}
 
@@ -766,16 +555,18 @@ void initBoard()
 
 	// Grid cell vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardpoints, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*6*sizeof(vec4), boardpoints, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Grid cell vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*6*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
+
+
 
 // No geometry for current tile initially
 void initCurrentTile()
@@ -807,8 +598,8 @@ void init()
 	vColor = glGetAttribLocation(program, "vColor");
 
 	// Get the location of the model_view_projection
-	locM_V = glGetAttribLocation(program, "ModelView");
-	locP = glGetAttribLocation(program, "Projection");
+	locM_V = glGetUniformLocation(program, "ModelView");
+	locP = glGetUniformLocation(program, "Projection");
 
 
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
@@ -816,7 +607,7 @@ void init()
 
 	// Initialize the grid, the board, and the current tile
 	initGrid();
-	//initBoard();
+	initBoard();
 	initCurrentTile();
 
 	// The location of the uniform variables in the shader program
@@ -842,23 +633,16 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// projection
-	projection = mat4();
+	//projection = Perspective(45, 1.0*xsize/ysize, 10, 200);
 
-	// Model
+	projection = mat4(1.0);
+
 	//model_view = Scale(1.0/33.0, 1.0/3.0, 1.0/33.0);
 
-	model_view = mat4();
+	model_view = mat4(1.0);
 
-	// view
-	vec4 eye(300.0, 200.0, 0.0);
-	vec4 at(500.0, 600.0, 0.0, 1.0);
-	vec4 up(0.0, 1.0, 0.0, 0.0);
-
-	//model_view *= LookAt( eye, at, up);
-
-
-	glUniformMatrix4fv(locM_V, 1, GL_FALSE, model_view);
-	glUniformMatrix4fv(locP, 1, GL_FALSE, projection);
+	glUniformMatrix4fv(locM_V, 1, GL_TRUE, model_view);
+	glUniformMatrix4fv(locP, 1, GL_TRUE, projection);
 
 	glUniform1i(locxsize, xsize); // x and y sizes are passed to the shader program to maintain shape of the vertices on screen
 	glUniform1i(locysize, ysize);
@@ -866,7 +650,7 @@ void display()
 
 	
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the grid cells (to be drawn first)
-	glDrawArrays(GL_TRIANGLES, 0, 1200); // Draw the board (10*20*2 = 400 triangles)
+	glDrawArrays(GL_TRIANGLES, 0, 1200 * 6); // Draw the board (10*20*2 = 400 triangles)
 	
 	
 	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current tile (to be drawn on top of the board)
@@ -903,9 +687,9 @@ void special(int key, int x, int y)
 
 	switch(key) {
 		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
-		case GLUT_KEY_LEFT: movetileToLeft(); break;
-		case GLUT_KEY_RIGHT: movetileToRight(); break;
-		case GLUT_KEY_DOWN: movetileDownAndSettle(); break;
+		case GLUT_KEY_LEFT: moveTileToLeft(); break;
+		case GLUT_KEY_RIGHT: moveTileToRight(); break;
+		case GLUT_KEY_DOWN: moveTileDownAndSettle(); break;
 		default: break;
 	}
 }
@@ -946,18 +730,18 @@ void rotatetile() {
 	updateTile();
 }
 // Move the tile to the left for 1 grid, when left is pressed
-void movetileToLeft() {
+void moveTileToLeft() {
 	vec2 direction = vec2(-1, 0);
-	if (movetile(direction))
+	if (moveTile(direction))
 	{
 		updateTile();
 	}
 
 }
 // Move the tile to the right for 1 grid, when right is pressed
-void movetileToRight() {
+void moveTileToRight() {
 	vec2 direction = vec2(1, 0);
-	if (movetile(direction))
+	if (moveTile(direction))
 	{
 		updateTile();
 	}
@@ -1067,7 +851,8 @@ void Timer(int value) {
 
 	if (!(halted || paused))
 	{
-		movetileDownAndSettle();
+		cout << "shit's going man" << endl;
+		moveTileDownAndSettle();
 	}
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
@@ -1076,20 +861,17 @@ void Timer(int value) {
 
 // Move tile down by 1
 // check whether it should be settled
-// do elimination
 // update board
 
-void movetileDownAndSettle() {
-	if(movetileDown()) {
+void moveTileDownAndSettle() {
+	cout << 111111 << endl;
+	if(moveTileDown()) {
 		// update tile 
 		updateTile();
 	} else {
 		// if cannot move tile dowm
 		// settleTile
 		settleTile();
-
-		// try to eliminate
-		eliminate();
 
 		// generate new tile
 		newTile();
@@ -1114,9 +896,9 @@ void movetileDownAndSettle() {
 }
 
 // move tile down by 1 grid
-bool movetileDown() {
+bool moveTileDown() {
 	vec2 direction = vec2(0,-1);
-	return movetile(direction);
+	return moveTile(direction);
 }
 
 
