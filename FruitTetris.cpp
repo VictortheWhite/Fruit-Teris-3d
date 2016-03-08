@@ -46,7 +46,8 @@ int rotationStatus;
 
 
 // constants
-int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
+int numOfGridPoints;; // 64 * 2 + 11 * 21 * 2
+int numOfBoardPoints;
 
 // Parameters controlling the size of the Robot's arm
 const GLfloat BASE_HEIGHT      = 20.0;
@@ -126,7 +127,7 @@ bool board[10][20];
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
-vec4 boardcolours[1200 * 6];
+vec4 *boardcolours;
 
 // An array contatinng all the points of three parts of the robit arm
 vec4 armPoints[3*36];
@@ -235,7 +236,7 @@ bool isVec4Equal(vec4 a, vec4 b) {
 void updateVboOfBoardColor() {
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	//glBindVertexArray(0);
 	glBindVertexArray(vboIDs[3]);
 }
@@ -319,7 +320,7 @@ void settleTile()
 
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*6*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	//glBindVertexArray(0);
 	glBindVertexArray(vboIDs[3]);
 
@@ -523,34 +524,6 @@ void initGrid()
 		}
 	}
 
-/*
-	// Vertical lines 
-	for (int i = 0; i < 11; i++){
-		gridpoints[590*k + 2*i] 	= vec4((33.0 + (33.0 * i)), 33.0, z1, 1);
-		gridpoints[590*k + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, z2, 1);
-		gridpoints[590*k + 64 + 2*i]	 = vec4((33.0 + (33.0 * i)), 33.0, z1, 1);
-		gridpoints[590*k + 64 + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, z2, 1);
-			
-	}
-		// Horizontal lines
-	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] 	 = vec4(33.0, (33.0 + (33.0 * i)), z1, 1);
-		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), z2, 1);
-
-		gridpoints[64 + 22 + 2*i] 	  = vec4(33.0, (33.0 + (33.0 * i)), z1, 1);
-		gridpoints[64 + 22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), z2, 1);
-	}
-
-	// Lines along z axies
-	for (int i = 0; i < 11; ++i)
-	{
-		for (int j = 0; j < 21; ++j)
-		{
-			gridpoints[128 + 22 * j + 2 * i] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), zStarting, 1);
-			gridpoints[128 + 22 * j + 2 * i + 1] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), -zStarting, 1);
-		}
-	}
-*/
 	// 
 	// Make all grid lines white
 	for (int i = 0; i < numOfGridPoints ; i++)
@@ -593,45 +566,41 @@ void setCubicFace(vec4 *boardpoints, int startingIndex,
 void initBoard()
 {
 	// *** Generate the geometric data
-	vec4 boardpoints[1200 * 6];
-	for (int i = 0; i < 1200 * 6; i++) {
+	vec4 *boardpoints = new vec4[numOfBoardPoints];
+	for (int i = 0; i < numOfBoardPoints; i++) {
 		boardcolours[i] = black; // Let the empty cells on the board be black
 	}
 
+	GLfloat zStarting = -33.0 * n / 2;
+
 	// Each cell is a square (2 triangles with 6 vertices)
-	for (int i = 0; i < 20; i++){
-		for (int j = 0; j < 10; j++)
-		{		
-			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), -16.5, 1);
-			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), -16.5, 1);
-			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), -16.5, 1);
-			vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), -16.5, 1);
+	for (int k = 0; k < n; k++) {
+		for (int i = 0; i < 20; i++){
+			for (int j = 0; j < 10; j++)
+			{	
+				GLfloat z1 = zStarting + 33.0 * k;
+				GLfloat z2 = z1 + 33.0;
 
-			vec4 p5 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0),  16.5, 1); 
-			vec4 p6 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0),  16.5, 1);
-			vec4 p7 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0),  16.5, 1);
-			vec4 p8 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0),  16.5, 1);
+				vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), z1, 1);
+				vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), z1, 1);
+				vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), z1, 1);
+				vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), z1, 1);
 
-			int startingIndex = 36*(10*i + j);
+				vec4 p5 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), z2, 1); 
+				vec4 p6 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), z2, 1);
+				vec4 p7 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), z2, 1);
+				vec4 p8 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), z2, 1);
 
-			setCubicFace(boardpoints, startingIndex,    p1, p2, p3, p4);	// front
-			setCubicFace(boardpoints, startingIndex+6,  p5, p6, p7, p8);	// back
-			setCubicFace(boardpoints, startingIndex+12, p1, p2, p5, p6);	// left
-			setCubicFace(boardpoints, startingIndex+18, p3, p4, p7, p8);	// right
-			setCubicFace(boardpoints, startingIndex+24, p1, p3, p5, p7);	// top
-			setCubicFace(boardpoints, startingIndex+30, p2, p4, p6, p8);	// bottom
+				int startingIndex =7200*k + 36*(10*i + j);
 
-			/*
-			// Two points are reused
-			// front
-			boardpoints[6*(10*i + j)    ] = p1;
-			boardpoints[6*(10*i + j) + 1] = p2;
-			boardpoints[6*(10*i + j) + 2] = p3;
-			boardpoints[6*(10*i + j) + 3] = p2;
-			boardpoints[6*(10*i + j) + 4] = p3;
-			boardpoints[6*(10*i + j) + 5] = p4;
-			*/
+				setCubicFace(boardpoints, startingIndex,    p1, p2, p3, p4);	// front
+				setCubicFace(boardpoints, startingIndex+6,  p5, p6, p7, p8);	// back
+				setCubicFace(boardpoints, startingIndex+12, p1, p2, p5, p6);	// left
+				setCubicFace(boardpoints, startingIndex+18, p3, p4, p7, p8);	// right
+				setCubicFace(boardpoints, startingIndex+24, p1, p3, p5, p7);	// top
+				setCubicFace(boardpoints, startingIndex+30, p2, p4, p6, p8);	// bottom
 
+			}
 		}
 	}
 
@@ -647,15 +616,17 @@ void initBoard()
 
 	// Grid cell vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*6*sizeof(vec4), boardpoints, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), boardpoints, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Grid cell vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*6*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
+
+	delete[] boardpoints;
 }
 
 
@@ -895,7 +866,7 @@ void display()
 
 	
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the grid cells (to be drawn first)
-	glDrawArrays(GL_TRIANGLES, 0, 1200 * 6); // Draw the board (10*20*2 = 400 triangles)
+	glDrawArrays(GL_TRIANGLES, 0, numOfBoardPoints); // Draw the board (10*20*2 = 400 triangles)
 	
 	
 	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current tile (to be drawn on top of the board)
@@ -1196,6 +1167,10 @@ void getSettings() {
 	cout << endl;
 
 	numOfGridPoints = ( (11 + 21)*(n+1) + (21 * 11) ) * 2;
+
+	// board
+	numOfBoardPoints = 1200 * 6 * n;
+	boardcolours = new vec4[numOfBoardPoints];
 }
 
 
