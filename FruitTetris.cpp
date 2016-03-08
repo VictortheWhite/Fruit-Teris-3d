@@ -44,6 +44,19 @@ int rotationStatus;
 // constants
 static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
+// Parameters controlling the size of the Robot's arm
+const GLfloat BASE_HEIGHT      = 20.0;
+const GLfloat BASE_WIDTH       = 50.0;
+const GLfloat LOWER_ARM_HEIGHT = 50.0;
+const GLfloat LOWER_ARM_WIDTH  = 5;
+const GLfloat UPPER_ARM_HEIGHT = 50.0;
+const GLfloat UPPER_ARM_WIDTH  = 5;
+
+// angel to control arm
+GLfloat theta_arm;
+GLfloat phi_arm;
+mat4 armModel_view;
+
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
 vec2 allRotationsLshape[4][4] = {
@@ -110,7 +123,10 @@ bool board[10][20];
 //will be set to the appropriate colour in this array before updating the corresponding VBO
 vec4 boardcolours[1200 * 6];
 
-
+// An array contatinng all the points of three parts of the robit arm
+vec4 armPoints[3*36];
+// a base offset vec, which translates the roboat from origin
+vec3 baseOffset = vec3(-3, 3, 0);
 
 // location of vertex attributes in the shader program
 GLuint vPosition;
@@ -141,8 +157,9 @@ GLfloat zFar = 200;
 
 
 // VAO and VBO
-GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
-GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+GLuint vaoIDs[4]; // One VAO for each object: the grid, the board, the current piece
+GLuint vboIDs[8]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -445,6 +462,8 @@ bool isGameOver() {
 
 //-------------------------------------------------------------------------------------------------------------------
 // game initialization
+
+
 void initGrid()
 {
 	// ***Generate geometry data
@@ -603,6 +622,94 @@ void initCurrentTile()
 	glEnableVertexAttribArray(vColor);
 }
 
+// init robot arm
+
+// cube factory
+//  width 1, centered at origin
+vec4 *cubeWithUnitWidth() {
+
+	vec4 *cube = new vec4[36];
+
+	vec4 p1 = vec4(-1,-1, -1, 1);
+	vec4 p2 = vec4(-1, 1, -1, 1);
+	vec4 p3 = vec4( 1,-1, -1, 1);
+	vec4 p4 = vec4( 1, 1, -1, 1);
+
+	vec4 p5 = vec4(-1,-1,  1, 1); 
+	vec4 p6 = vec4(-1, 1,  1, 1);
+	vec4 p7 = vec4( 1,-1,  1, 1);
+	vec4 p8 = vec4( 1, 1,  1, 1);
+
+	int startingIndex = 0;	// base
+
+	setCubicFace(cube, startingIndex,    p1, p2, p3, p4);	// front
+	setCubicFace(cube, startingIndex+6,  p5, p6, p7, p8);	// back
+	setCubicFace(cube, startingIndex+12, p1, p2, p5, p6);	// left
+	setCubicFace(cube, startingIndex+18, p3, p4, p7, p8);	// right
+	setCubicFace(cube, startingIndex+24, p1, p3, p5, p7);	// top
+	setCubicFace(cube, startingIndex+30, p2, p4, p6, p8);	// bottom
+
+	return cube;
+}
+
+void base() {
+	vec4 *cube = cubeWithUnitWidth();
+
+	mat4 transform = mat4();
+	transform *= Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
+	transform *= Translate(baseOffset);
+
+	// do transform, stored in corresponding points to draw
+
+	for (int i = 0; i < 36; ++i)
+	{
+		armPoints[i] = transform * cube[i];
+	}
+
+}
+
+void lowerArm() {
+	mat4 transformMat = mat4();
+}
+
+void upperArm() {
+
+}
+
+void drawArm() {
+
+	base();
+	lowerArm();
+	upperArm();
+
+}
+
+void initRobortArm() {
+	glBindVertexArray(vaoIDs[3]);
+	glGenBuffers(2, &vboIDs[6]);
+
+	drawArm();
+
+	// Current arm vertex positions
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*3*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vPosition);
+
+
+	// arm colors
+	vec4 armColors[36*3];
+	for (int i = 0; i < 36*3; ++i)
+	{
+		armColors[i] = orange;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
+	glBufferData(GL_ARRAY_BUFFER, 36*3*sizeof(vec4),  armColors, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vColor);
+}
+
 void init()
 {
 	// Load shaders and use the shader program
@@ -625,6 +732,7 @@ void init()
 	initGrid();
 	initBoard();
 	initCurrentTile();
+	initRobortArm();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
@@ -642,6 +750,7 @@ void init()
 
 //-------------------------------------------------------------------------------------------------------------------
 
+
 // Draws the game
 void display()
 {
@@ -655,7 +764,7 @@ void display()
 	model_view = Scale(2.0/33, 2.0/33, 2.0/33);
 
 	vec4 eye(radius*sin(theta)*cos(phi),
-			 radius*sin(theta)*sin(phi) + 500, 
+			 radius*sin(theta)*sin(phi),//+ 500, 
 			 radius*cos(theta), 
 			 1.0);
 	vec4 at(0, 20/2, 0, 1.0);
@@ -678,10 +787,13 @@ void display()
 	glBindVertexArray(vaoIDs[2]); // Bind the VAO representing the current tile (to be drawn on top of the board)
 	glDrawArrays(GL_TRIANGLES, 0, 24 * 6); // Draw the current tile (48 triangles)
 
-	
+	glBindVertexArray(vaoIDs[3]);	
+	glDrawArrays(GL_TRIANGLES, 0, 36*3);	// Draw the roboat arm
+
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glDrawArrays(GL_LINES, 0, numOfGridPoints); // Draw the grid lines (21+11 = 32 lines)
 	
+
 
 	glutSwapBuffers();
 }
