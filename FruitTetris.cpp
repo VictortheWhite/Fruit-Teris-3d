@@ -45,9 +45,9 @@ int rotationStatus;
 static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
 // Parameters controlling the size of the Robot's arm
-const GLfloat BASE_HEIGHT      = 30.0;
-const GLfloat BASE_WIDTH       = 50.0;
-const GLfloat LOWER_ARM_HEIGHT = 200.0;
+const GLfloat BASE_HEIGHT      = 20.0;
+const GLfloat BASE_WIDTH       = 70.0;
+const GLfloat LOWER_ARM_HEIGHT = 300.0;
 const GLfloat LOWER_ARM_WIDTH  = 20;
 const GLfloat UPPER_ARM_HEIGHT = 200.0;
 const GLfloat UPPER_ARM_WIDTH  = 20;
@@ -126,7 +126,7 @@ vec4 boardcolours[1200 * 6];
 // An array contatinng all the points of three parts of the robit arm
 vec4 armPoints[3*36];
 // a base offset vec, which translates the roboat from origin
-vec3 baseOffset = vec3(-40, 36, 0);
+vec3 baseOffset = vec3(-50, 36, 0);
 
 // location of vertex attributes in the shader program
 GLuint vPosition;
@@ -184,6 +184,9 @@ void increaseTheta_Arm();
 void decreaseTheta_Arm();
 void increasePhi_Arm();
 void decreasePhi_Arm();
+
+void adjustTileLocation();
+vec2 round();
 
 //---------------------------------------------------------------------------------------------------------------------
 // helper methods
@@ -1000,43 +1003,74 @@ void keyboard(unsigned char key, int x, int y)
 
 // increase or decrease theta_arm
 void increaseTheta_Arm() {
-	theta_arm += 1;
+	theta_arm += 2;
 	drawArm();
 
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
 	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
 	glBindVertexArray(vboIDs[6]);
+
+	adjustTileLocation();
 }
 
 void decreaseTheta_Arm() {
-	theta_arm -= 1;
+	theta_arm -= 2;
 	drawArm();
 
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
 	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
 	glBindVertexArray(vboIDs[6]);
+
+	adjustTileLocation();
 }
 
 void increasePhi_Arm() {
-	phi_arm += 1;
+	phi_arm += 2;
 	drawArm();
 
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
 	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
 	glBindVertexArray(vboIDs[6]);
+
+	adjustTileLocation();
 }
 
 void decreasePhi_Arm() {
-	phi_arm -= 1;
+	phi_arm -= 2;
 	drawArm();
 
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
 	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
 	glBindVertexArray(vboIDs[6]);
+
+	adjustTileLocation();
+}
+
+// adjust tile position
+void adjustTileLocation() {
+	vec2 newLocation = round();
+
+	cout << newLocation.x << ' ' << newLocation.y << endl;
+
+	tilePos = newLocation;
+
+	updateTile();
+}
+
+// round gives the location of the center of the tile
+// according to the position of the robort arm
+vec2 round() {
+	vec2 location;
+	vec4 robortArmEndPoint = armPoints[77];
+
+	location.x = ((int)robortArmEndPoint.x-33)/33;
+	location.y = ((int)robortArmEndPoint.y-33)/33;
+
+	return location;
 }
 
 
@@ -1098,8 +1132,7 @@ void Timer(int value) {
 
 	if (!(halted || paused))
 	{
-		cout << "shit's going man" << endl;
-		moveTileDownAndSettle();
+		//moveTileDownAndSettle();
 	}
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
@@ -1111,7 +1144,6 @@ void Timer(int value) {
 // update board
 
 void moveTileDownAndSettle() {
-	cout << 111111 << endl;
 	if(moveTileDown()) {
 		// update tile 
 		updateTile();
