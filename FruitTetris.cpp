@@ -22,6 +22,7 @@
 using namespace std;
 
 int timerIntervial = 10000;	// 10s
+int timerCountDown = 0;
 int gameRound = 0;
 
 bool halted = false;
@@ -47,10 +48,10 @@ static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
 // Parameters controlling the size of the Robot's arm
 const GLfloat BASE_HEIGHT      = 20.0;
-const GLfloat BASE_WIDTH       = 70.0;
-const GLfloat LOWER_ARM_HEIGHT = 300.0;
+const GLfloat BASE_WIDTH       = 90.0;
+const GLfloat LOWER_ARM_HEIGHT = 400.0;
 const GLfloat LOWER_ARM_WIDTH  = 20;
-const GLfloat UPPER_ARM_HEIGHT = 200.0;
+const GLfloat UPPER_ARM_HEIGHT = 350.0;
 const GLfloat UPPER_ARM_WIDTH  = 20;
 
 // angel to control arm
@@ -188,6 +189,7 @@ void moveCameraCounterlockwise();
 
 void displaytile();
 void Timer(int);
+void printCountDown();
 
 void increaseTheta_Arm();
 void decreaseTheta_Arm();
@@ -292,6 +294,8 @@ bool moveTile(vec2 direction) {
 // Places the current tile
 void settleTile()
 {
+
+
 	if (isGameOver())
 	{
 		cout << "Game over!" << endl;
@@ -924,27 +928,6 @@ void rotatetile() {
 
 	newRotation = (newRotation + 1) % 4;
 
-	// check whether possible to rotate
-	if(collide(allRotationsShapes[tileType][newRotation], vec2(0,0))) {
-		// if the rotated tile will collide
-		if(!collide(allRotationsShapes[tileType][newRotation], vec2(1,0))) {
-			// if move to the right by 1 will work
-			tilePos.x += 1;
-		} else if(!collide(allRotationsShapes[tileType][newRotation], vec2(-1,0))) {
-			// if move to the left by 1 will work
-			tilePos.x += -1;
-		} else if(!collide(allRotationsShapes[tileType][newRotation], vec2(2, 0))) {
-			// if move to the right by 2 will work
-			tilePos.x += 2;
-		} else if(!collide(allRotationsShapes[tileType][newRotation], vec2(-2, 0))) {
-			// if move to the left by 2 will work
-			tilePos.x += -2;
-		} else {
-			// cannot rotate
-			return;
-		}
-	}
-
 	// rotate and update tile
 	rotationStatus = newRotation;
 	copyArray4OfVec2(tile, allRotationsShapes[tileType][newRotation]);
@@ -966,10 +949,10 @@ void keyboard(unsigned char key, int x, int y)
 		case 'q':
 			exit (EXIT_SUCCESS);
 			break;
-		case 'a':
+		case 'd':
 			increaseTheta_Arm();
 			break;
-		case 'd':
+		case 'a':
 			decreaseTheta_Arm();
 			break;
 		case 'w':
@@ -993,6 +976,12 @@ void keyboard(unsigned char key, int x, int y)
 
 // increase or decrease theta_arm
 void increaseTheta_Arm() {
+
+	if (halted || paused)
+	{
+		return;
+	}
+
 	theta_arm += 2;
 	drawArm();
 
@@ -1005,6 +994,11 @@ void increaseTheta_Arm() {
 }
 
 void decreaseTheta_Arm() {
+	if (halted || paused)
+	{
+		return;
+	}
+
 	theta_arm -= 2;
 	drawArm();
 
@@ -1017,6 +1011,12 @@ void decreaseTheta_Arm() {
 }
 
 void increasePhi_Arm() {
+
+	if (halted || paused)
+	{
+		return;
+	}
+
 	phi_arm += 2;
 	drawArm();
 
@@ -1029,6 +1029,12 @@ void increasePhi_Arm() {
 }
 
 void decreasePhi_Arm() {
+
+	if (halted || paused)
+	{
+		return;
+	}
+
 	phi_arm -= 2;
 	drawArm();
 
@@ -1102,7 +1108,7 @@ void restartGame() {
 	gameRound++;
 
 	// reset speed
-	timerIntervial = 1000;
+	timerIntervial = 10000;
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
 
@@ -1120,6 +1126,8 @@ void Timer(int value) {
 		return;
 	}
 
+	printCountDown();
+
 	if (!(halted || paused))
 	{
 		settleTile();
@@ -1128,7 +1136,12 @@ void Timer(int value) {
 	glutTimerFunc(timerIntervial, Timer, gameRound);
 }
 
+// print time String
 
+void printCountDown() {
+	glRasterPos2f(600, 300);
+	glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, '0'+timerCountDown);
+}
 
 //-------------------------------------------------------------------------------------------------------------------
 
