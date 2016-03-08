@@ -45,12 +45,12 @@ int rotationStatus;
 static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
 // Parameters controlling the size of the Robot's arm
-const GLfloat BASE_HEIGHT      = 10.0;
+const GLfloat BASE_HEIGHT      = 30.0;
 const GLfloat BASE_WIDTH       = 50.0;
-const GLfloat LOWER_ARM_HEIGHT = 150.0;
-const GLfloat LOWER_ARM_WIDTH  = 10;
-const GLfloat UPPER_ARM_HEIGHT = 50.0;
-const GLfloat UPPER_ARM_WIDTH  = 5;
+const GLfloat LOWER_ARM_HEIGHT = 200.0;
+const GLfloat LOWER_ARM_WIDTH  = 20;
+const GLfloat UPPER_ARM_HEIGHT = 200.0;
+const GLfloat UPPER_ARM_WIDTH  = 20;
 
 // angel to control arm
 GLfloat theta_arm = 0;
@@ -634,15 +634,15 @@ vec4 *cubeWithUnitWidth() {
 
 	vec4 *cube = new vec4[36];
 
-	vec4 p1 = vec4(0, 0, -1, 1);
-	vec4 p2 = vec4(0, 1, -1, 1);
-	vec4 p3 = vec4(1, 0, -1, 1);
-	vec4 p4 = vec4(1, 1, -1, 1);
+	vec4 p1 = vec4(-1,-1, -1, 1);
+	vec4 p2 = vec4(-1, 1, -1, 1);
+	vec4 p3 = vec4( 1,-1, -1, 1);
+	vec4 p4 = vec4( 1, 1, -1, 1);
 
-	vec4 p5 = vec4(0, 0,  1, 1); 
-	vec4 p6 = vec4(0, 1,  1, 1);
-	vec4 p7 = vec4(1, 0,  1, 1);
-	vec4 p8 = vec4(1,1,  1, 1);
+	vec4 p5 = vec4(-1,-1,  1, 1); 
+	vec4 p6 = vec4(-1, 1,  1, 1);
+	vec4 p7 = vec4( 1,-1,  1, 1);
+	vec4 p8 = vec4( 1, 1,  1, 1);
 
 	int startingIndex = 0;	// base
 
@@ -663,7 +663,7 @@ void base() {
 	// base offset from origin
 	transformMat *= Translate(baseOffset);
 	// scale to proper size
-	transformMat *= Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
+	transformMat *= Scale(BASE_WIDTH/2, BASE_HEIGHT/2, BASE_WIDTH/2);
 	
 
 
@@ -682,12 +682,12 @@ void lowerArm() {
 	mat4 transformMat = mat4();
 	// base offset from origin
 	transformMat *= Translate(baseOffset);
-	// translate
-	transformMat *= Translate(BASE_WIDTH/2.0, BASE_HEIGHT/2,0);
 	// rotate
 	transformMat *= RotateZ(-theta_arm);
+	// translate
+	transformMat *= Translate(0, LOWER_ARM_HEIGHT/2.0, 0);
 	// scale to proper shape
-	transformMat *= Scale(LOWER_ARM_WIDTH, LOWER_ARM_HEIGHT, LOWER_ARM_WIDTH);
+	transformMat *= Scale(LOWER_ARM_WIDTH/2, LOWER_ARM_HEIGHT/2, LOWER_ARM_WIDTH/2);
 
 	// do transform, soted in correponding points to draw
 	for (int i = 0; i < 36; ++i)
@@ -706,13 +706,15 @@ void upperArm() {
 	// base offset
 	transformMat *= Translate(baseOffset);
 	// tranlation based on lower and uper arm
-	transformMat *= Translate(BASE_WIDTH/2.0 + LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm),
-							  BASE_HEIGHT/2.0 + LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
+	transformMat *= Translate(LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm),
+							  LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
 							  0);
 	// rotate
 	transformMat *= RotateZ(-theta_arm + phi_arm - 90);
+	// translate the rotation point to origin
+	transformMat *= Translate(0, UPPER_ARM_HEIGHT/2.0, 0);
 	// scale to proper shape
-	transformMat *= Scale(UPPER_ARM_WIDTH, UPPER_ARM_HEIGHT, UPPER_ARM_WIDTH);
+	transformMat *= Scale(UPPER_ARM_WIDTH/2, UPPER_ARM_HEIGHT/2, UPPER_ARM_WIDTH/2);
 
 	// do transformation, stored in corresponding points to draw
 	for (int i = 0; i < 36; ++i)
