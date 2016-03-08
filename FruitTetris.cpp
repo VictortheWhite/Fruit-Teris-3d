@@ -261,17 +261,17 @@ void settleTile()
 	// update the board vertex colour VBO
 	for (int i = 0; i < 4; i++)
 	{
-		for (int j = 0; j < 6; j++)
+		for (int j = 0; j < 36; j++)
 		{
 			// each square has 6 vertex
-			int vIndex = 6 * (10 * (tilePos.y + tile[i].y) + (tilePos.x + tile[i].x)) + j;
+			int vIndex = 36 * (10 * (tilePos.y + tile[i].y) + (tilePos.x + tile[i].x)) + j;
 			boardcolours[vIndex] = currenttileFruitColors[i];
 		}
 	}
 
 	// update vbo
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*6*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	//glBindVertexArray(0);
 	glBindVertexArray(vboIDs[3]);
 
@@ -519,7 +519,7 @@ void initBoard()
 	// *** Generate the geometric data
 	vec4 boardpoints[1200 * 6];
 	for (int i = 0; i < 1200 * 6; i++) {
-		boardcolours[i] = orange; // Let the empty cells on the board be black
+		boardcolours[i] = black; // Let the empty cells on the board be black
 	}
 
 	// Each cell is a square (2 triangles with 6 vertices)
@@ -847,7 +847,7 @@ void restartGame() {
 	}
 
 	// set all board colors to black
-	for (int i = 0; i < 1200; ++i)
+	for (int i = 0; i < 1200 * 6; ++i)
 	{
 		boardcolours[i] = black;
 	}
