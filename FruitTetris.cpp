@@ -35,6 +35,7 @@ int zsize = 33;
 // current tile
 vec2 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
 vec2 tilePos = vec2(5, 19); // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
+vec4 tileColors[4];	// A array containing the colors of current tile
 
 // the type and rotation of the current tile
 int tileType;
@@ -109,6 +110,7 @@ vec4 red = vec4(1.0, 0.0, 0.0, 1.0);
 vec4 green = vec4(0.0, 1.0, 0.0, 1.0);
 vec4 blue = vec4(0.0, 0.0, 1.0, 1.0);
 vec4 purple = vec4(1.0, 0.0, 1.0, 1.0);
+vec4 grey = vec4(0.5, 0.5, 0.5, 1.0);
 
 vec4 fruitColors[5] = {orange, red, green, blue, purple};
 
@@ -186,6 +188,7 @@ void increasePhi_Arm();
 void decreasePhi_Arm();
 
 void adjustTileLocation();
+void updateTileColor();
 vec2 round();
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -309,7 +312,7 @@ void settleTile()
 }
 
 // When the current tile is moved or rotated (or created), update the VBO containing its vertex position data
-void updateTile() {
+void updateTileVLoc() {
 	// Bind the VBO containing current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]); 
 
@@ -348,6 +351,21 @@ void updateTile() {
 	}
 
 	glBindVertexArray(0);
+
+	updateTileColor();
+}
+
+void updateTileColor() {
+	for (int i = 0; i < 4; ++i)
+	{
+		if (occupied(tilePos.x + tile[i].x, tilePos.y + tile[i].y)) {
+			currenttileFruitColors[i] = grey;
+		} else {
+			currenttileFruitColors[i] = tileColors[i];
+		}
+	}
+	displaytile();
+
 }
 
 // whether a tile is out of upper bound
@@ -396,7 +414,8 @@ void newTile()
 	int tileXPos = randomNum(10);
 	int tileRotation = randomNum(4);
 
-	tilePos = vec2(tileXPos , 19); // Put the tile at the top of the board
+	//tilePos = vec2(tileXPos , 19); // Put the tile at the top of the board
+	tilePos = round();
 	tileType = randomNum(4);	// random type of tile
 
 	// Update the geometry VBO of current tile
@@ -404,40 +423,10 @@ void newTile()
 		tile[i] = allRotationsShapes[tileType][tileRotation][i]; // Get the 4 pieces of the new tile
 	}
 
-	// adjust position of tile to fit in the screen
-	if (istileOutOfUpperBound())
-	{
-		tilePos.y += -1;
-		if (istileOutOfUpperBound())
-		{
-			tilePos.y += -1;
-		}
-	}
-	if (istileOutOfRightBound())
-	{
-		tilePos.x += -1;
-		if (istileOutOfRightBound())
-		{
-			tilePos.x += -1;
-		}
-	}
-	if (istileOutOfLeftBound())
-	{
-		tilePos.x += 1;
-		if (istileOutOfLeftBound())
-		{
-			tilePos.x += 1;
-		}
-	}
-
-
-	updateTile(); 
-
-
 	// generate random color for each fruit
 	for (int i = 0; i < 4; i++)
 	{
-		currenttileFruitColors[i] = fruitColors[randomNum(5)];
+		tileColors[i] = fruitColors[randomNum(5)];
 	}
 
 }
@@ -804,7 +793,8 @@ void init()
 
 	// Game initialization
 	newTile(); // create new next tile
-	displaytile();
+	updateTileVLoc();
+	updateTileColor();
 
 	// set to default
 	glBindVertexArray(0);
@@ -895,9 +885,6 @@ void special(int key, int x, int y)
 
 	switch(key) {
 		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
-		//case GLUT_KEY_LEFT: moveTileToLeft(); break;
-		//case GLUT_KEY_RIGHT: moveTileToRight(); break;
-		case GLUT_KEY_DOWN: moveTileDownAndSettle(); break;
 		default: break;
 	}
 }
@@ -943,27 +930,9 @@ void rotatetile() {
 	// rotate and update tile
 	rotationStatus = newRotation;
 	copyArray4OfVec2(tile, allRotationsShapes[tileType][newRotation]);
-	updateTile();
+	updateTileVLoc();
+	updateTileColor();
 }
-// Move the tile to the left for 1 grid, when left is pressed
-void moveTileToLeft() {
-	vec2 direction = vec2(-1, 0);
-	if (moveTile(direction))
-	{
-		updateTile();
-	}
-
-}
-// Move the tile to the right for 1 grid, when right is pressed
-void moveTileToRight() {
-	vec2 direction = vec2(1, 0);
-	if (moveTile(direction))
-	{
-		updateTile();
-	}
-}
-
-
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1058,7 +1027,8 @@ void adjustTileLocation() {
 
 	tilePos = newLocation;
 
-	updateTile();
+	updateTileVLoc();
+	updateTileColor();
 }
 
 // round gives the location of the center of the tile
@@ -1097,9 +1067,8 @@ void restartGame() {
 	// create new tile
 
 	newTile();
-	displaytile();
-
-
+	updateTileVLoc();
+	updateTileColor();
 
 	// resets line counters
 
@@ -1137,49 +1106,6 @@ void Timer(int value) {
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
 }
-
-
-// Move tile down by 1
-// check whether it should be settled
-// update board
-
-void moveTileDownAndSettle() {
-	if(moveTileDown()) {
-		// update tile 
-		updateTile();
-	} else {
-		// if cannot move tile dowm
-		// settleTile
-		settleTile();
-
-		// generate new tile
-		newTile();
-
-		// check whether game over
-		if (isGameOver())
-		{
-			// do nothing
-			halted = true;
-
-			// prompt game is over
-			cout << "Game Over" << endl
-				<< "press 'r' to restart" << endl
-				<< "press 'q' to quit" << endl 
-				<< endl;
-			return;
-		}
-
-		// display new tile
-		displaytile();
-	}
-}
-
-// move tile down by 1 grid
-bool moveTileDown() {
-	vec2 direction = vec2(0,-1);
-	return moveTile(direction);
-}
-
 
 
 
