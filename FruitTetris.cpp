@@ -45,16 +45,16 @@ int rotationStatus;
 static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
 // Parameters controlling the size of the Robot's arm
-const GLfloat BASE_HEIGHT      = 20.0;
+const GLfloat BASE_HEIGHT      = 10.0;
 const GLfloat BASE_WIDTH       = 50.0;
-const GLfloat LOWER_ARM_HEIGHT = 50.0;
-const GLfloat LOWER_ARM_WIDTH  = 5;
+const GLfloat LOWER_ARM_HEIGHT = 150.0;
+const GLfloat LOWER_ARM_WIDTH  = 10;
 const GLfloat UPPER_ARM_HEIGHT = 50.0;
 const GLfloat UPPER_ARM_WIDTH  = 5;
 
 // angel to control arm
-GLfloat theta_arm;
-GLfloat phi_arm;
+GLfloat theta_arm = 0;
+GLfloat phi_arm = 0;
 mat4 armModel_view;
 
 // An array storing all possible orientations of all possible tiles
@@ -126,7 +126,7 @@ vec4 boardcolours[1200 * 6];
 // An array contatinng all the points of three parts of the robit arm
 vec4 armPoints[3*36];
 // a base offset vec, which translates the roboat from origin
-vec3 baseOffset = vec3(-3, 3, 0);
+vec3 baseOffset = vec3(-40, 36, 0);
 
 // location of vertex attributes in the shader program
 GLuint vPosition;
@@ -167,7 +167,6 @@ GLuint vboIDs[8]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 
 // for sepcial keys(arrow keys)
 void rotatetile();
-void acceleratetile();
 void restartGame();
 
 void moveTileToLeft();
@@ -180,6 +179,11 @@ void moveCameraCounterlockwise();
 
 void displaytile();
 void Timer(int);
+
+void increaseTheta_Arm();
+void decreaseTheta_Arm();
+void increasePhi_Arm();
+void decreasePhi_Arm();
 
 //---------------------------------------------------------------------------------------------------------------------
 // helper methods
@@ -630,15 +634,15 @@ vec4 *cubeWithUnitWidth() {
 
 	vec4 *cube = new vec4[36];
 
-	vec4 p1 = vec4(-1,-1, -1, 1);
-	vec4 p2 = vec4(-1, 1, -1, 1);
-	vec4 p3 = vec4( 1,-1, -1, 1);
-	vec4 p4 = vec4( 1, 1, -1, 1);
+	vec4 p1 = vec4(0, 0, -1, 1);
+	vec4 p2 = vec4(0, 1, -1, 1);
+	vec4 p3 = vec4(1, 0, -1, 1);
+	vec4 p4 = vec4(1, 1, -1, 1);
 
-	vec4 p5 = vec4(-1,-1,  1, 1); 
-	vec4 p6 = vec4(-1, 1,  1, 1);
-	vec4 p7 = vec4( 1,-1,  1, 1);
-	vec4 p8 = vec4( 1, 1,  1, 1);
+	vec4 p5 = vec4(0, 0,  1, 1); 
+	vec4 p6 = vec4(0, 1,  1, 1);
+	vec4 p7 = vec4(1, 0,  1, 1);
+	vec4 p8 = vec4(1,1,  1, 1);
 
 	int startingIndex = 0;	// base
 
@@ -655,24 +659,68 @@ vec4 *cubeWithUnitWidth() {
 void base() {
 	vec4 *cube = cubeWithUnitWidth();
 
-	mat4 transform = mat4();
-	transform *= Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
-	transform *= Translate(baseOffset);
+	mat4 transformMat = mat4();
+	// base offset from origin
+	transformMat *= Translate(baseOffset);
+	// scale to proper size
+	transformMat *= Scale(BASE_WIDTH, BASE_HEIGHT, BASE_WIDTH);
+	
+
 
 	// do transform, stored in corresponding points to draw
-
 	for (int i = 0; i < 36; ++i)
 	{
-		armPoints[i] = transform * cube[i];
+		armPoints[i] = transformMat * cube[i];
 	}
 
+	delete []cube;
 }
 
 void lowerArm() {
+	vec4 *cube = cubeWithUnitWidth();
+
 	mat4 transformMat = mat4();
+	// base offset from origin
+	transformMat *= Translate(baseOffset);
+	// translate
+	transformMat *= Translate(BASE_WIDTH/2.0, BASE_HEIGHT/2,0);
+	// rotate
+	transformMat *= RotateZ(-theta_arm);
+	// scale to proper shape
+	transformMat *= Scale(LOWER_ARM_WIDTH, LOWER_ARM_HEIGHT, LOWER_ARM_WIDTH);
+
+	// do transform, soted in correponding points to draw
+	for (int i = 0; i < 36; ++i)
+	{
+		armPoints[36 + i] = transformMat * cube[i];
+	}
+
+	delete []cube;
+
 }
 
 void upperArm() {
+	vec4 *cube = cubeWithUnitWidth();
+
+	mat4 transformMat = mat4();
+	// base offset
+	transformMat *= Translate(baseOffset);
+	// tranlation based on lower and uper arm
+	transformMat *= Translate(BASE_WIDTH/2.0 + LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm),
+							  BASE_HEIGHT/2.0 + LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
+							  0);
+	// rotate
+	transformMat *= RotateZ(-theta_arm + phi_arm - 90);
+	// scale to proper shape
+	transformMat *= Scale(UPPER_ARM_WIDTH, UPPER_ARM_HEIGHT, UPPER_ARM_WIDTH);
+
+	// do transformation, stored in corresponding points to draw
+	for (int i = 0; i < 36; ++i)
+	{
+		armPoints[72 + i] = transformMat * cube[i];
+	}
+
+	delete []cube;
 
 }
 
@@ -699,9 +747,19 @@ void initRobortArm() {
 
 	// arm colors
 	vec4 armColors[36*3];
-	for (int i = 0; i < 36*3; ++i)
+	for (int i = 0; i < 36; ++i)
 	{
 		armColors[i] = orange;
+	}
+
+	for (int i = 0; i < 36; ++i)
+	{
+		armColors[36 + i] = blue;
+	}
+
+	for (int i = 0; i < 36; ++i)
+	{
+		armColors[72 + i] = red;
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
@@ -788,7 +846,7 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 0, 24 * 6); // Draw the current tile (48 triangles)
 
 	glBindVertexArray(vaoIDs[3]);	
-	glDrawArrays(GL_TRIANGLES, 0, 36*3);	// Draw the roboat arm
+	glDrawArrays(GL_TRIANGLES, 0, 36 * 3);	// Draw the roboat arm
 
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glDrawArrays(GL_LINES, 0, numOfGridPoints); // Draw the grid lines (21+11 = 32 lines)
@@ -822,6 +880,7 @@ void special(int key, int x, int y)
 	int mode = glutGetModifiers();
 	if (mode == GLUT_ACTIVE_CTRL)
 	{
+		cout << "shit" << endl;
 		switch(key) {
 			case GLUT_KEY_LEFT: moveCameraCounterlockwise(); return;
 			case GLUT_KEY_RIGHT:moveCameraClockwise(); return;
@@ -831,8 +890,8 @@ void special(int key, int x, int y)
 
 	switch(key) {
 		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
-		case GLUT_KEY_LEFT: moveTileToLeft(); break;
-		case GLUT_KEY_RIGHT: moveTileToRight(); break;
+		//case GLUT_KEY_LEFT: moveTileToLeft(); break;
+		//case GLUT_KEY_RIGHT: moveTileToRight(); break;
 		case GLUT_KEY_DOWN: moveTileDownAndSettle(); break;
 		default: break;
 	}
@@ -916,7 +975,16 @@ void keyboard(unsigned char key, int x, int y)
 			exit (EXIT_SUCCESS);
 			break;
 		case 'a':
-			acceleratetile();
+			increaseTheta_Arm();
+			break;
+		case 'd':
+			decreaseTheta_Arm();
+			break;
+		case 'w':
+			increasePhi_Arm();
+			break;
+		case 's':
+			decreasePhi_Arm();
 			break;
 		case 'p':// pause the game
 			paused = !paused;
@@ -928,22 +996,47 @@ void keyboard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-// accelerate tile falling speed
-void acceleratetile() {
-	// minimum time interval 400ms
-	if (timerIntervial > 200)
-	{
-		timerIntervial -= 200;
-	} else {
-		return;
-	}
+// increase or decrease theta_arm
+void increaseTheta_Arm() {
+	theta_arm += 1;
+	drawArm();
 
-	// start a timer at once
-	// abondon the former timer
-	gameRound++;
-	glutTimerFunc(timerIntervial, Timer, gameRound);
-
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glBindVertexArray(vboIDs[6]);
 }
+
+void decreaseTheta_Arm() {
+	theta_arm -= 1;
+	drawArm();
+
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glBindVertexArray(vboIDs[6]);
+}
+
+void increasePhi_Arm() {
+	phi_arm += 1;
+	drawArm();
+
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glBindVertexArray(vboIDs[6]);
+}
+
+void decreasePhi_Arm() {
+	phi_arm -= 1;
+	drawArm();
+
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glBindVertexArray(vboIDs[6]);
+}
+
 
 // Restart game, when 'r' is pressed
 void restartGame() {
