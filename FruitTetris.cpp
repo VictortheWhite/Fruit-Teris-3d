@@ -21,6 +21,8 @@
 
 using namespace std;
 
+int n = 1;	// 20*10*n grids
+
 int timerIntervial = 10000;	// 10s
 int timerCountDown = 0;
 int gameRound = 0;
@@ -44,7 +46,7 @@ int rotationStatus;
 
 
 // constants
-static const int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
+int numOfGridPoints = 590; // 64 * 2 + 11 * 21 * 2
 
 // Parameters controlling the size of the Robot's arm
 const GLfloat BASE_HEIGHT      = 20.0;
@@ -486,24 +488,29 @@ bool isGameOver() {
 void initGrid()
 {
 	// ***Generate geometry data
-	vec4 gridpoints[numOfGridPoints]; // Array containing the 64 points of the 32 total lines to be later put in the VBO
-	vec4 gridcolours[numOfGridPoints]; // One colour per vertex
-	// Vertical lines 
-	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] 	= vec4((33.0 + (33.0 * i)), 33.0, 16.5, 1);
-		gridpoints[2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, 16.5, 1);
+	vec4 *gridpoints = new vec4[numOfGridPoints]; // Array containing the 64 points of the 32 total lines to be later put in the VBO
+	vec4 *gridcolours= new vec4[numOfGridPoints]; // One colour per vertex
 
-		gridpoints[64 + 2*i]	 = vec4((33.0 + (33.0 * i)), 33.0, -16.5, 1);
-		gridpoints[64 + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, -16.5, 1);
-		
-	}
-	// Horizontal lines
-	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] 	 = vec4(33.0, (33.0 + (33.0 * i)), 16.5, 1);
-		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), 16.5, 1);
+	// get the location of the first z
+	GLfloat zStarting = -33.0 * n / 2;
 
-		gridpoints[64 + 22 + 2*i] 	  = vec4(33.0, (33.0 + (33.0 * i)), -16.5, 1);
-		gridpoints[64 + 22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), -16.5, 1);
+	
+	for (int j = 0; j < n+1; ++j)
+	{
+		GLfloat zTemp = zStarting + 33.0 * j;
+
+		// vertical lines
+		for (int i = 0; i < 11; ++i)
+		{
+			gridpoints[64*j + 2*i]		= vec4((33.0 + (33.0 * i)), 33.0, zTemp, 1);
+			gridpoints[64*j + 2*i +1]   = vec4((33.0 + (33.0 * i)), 693.0, zTemp, 1);
+		}
+		// Horizontal lines
+		for (int i = 0; i < 21; i++){
+			gridpoints[64*j + 22 + 2*i] 	 = vec4(33.0, (33.0 + (33.0 * i)), zTemp, 1);
+			gridpoints[64*j + 22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), zTemp, 1);
+		}
+
 	}
 
 	// Lines along z axies
@@ -511,14 +518,42 @@ void initGrid()
 	{
 		for (int j = 0; j < 21; ++j)
 		{
-			gridpoints[128 + 22 * j + 2 * i] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), 16.5, 1);
-			gridpoints[128 + 22 * j + 2 * i + 1] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), -16.5, 1);
+			gridpoints[64*(n+1) + 22 * j + 2 * i] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), zStarting, 1);
+			gridpoints[64*(n+1) + 22 * j + 2 * i + 1] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), -zStarting, 1);
 		}
 	}
 
+/*
+	// Vertical lines 
+	for (int i = 0; i < 11; i++){
+		gridpoints[590*k + 2*i] 	= vec4((33.0 + (33.0 * i)), 33.0, z1, 1);
+		gridpoints[590*k + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, z2, 1);
+		gridpoints[590*k + 64 + 2*i]	 = vec4((33.0 + (33.0 * i)), 33.0, z1, 1);
+		gridpoints[590*k + 64 + 2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, z2, 1);
+			
+	}
+		// Horizontal lines
+	for (int i = 0; i < 21; i++){
+		gridpoints[22 + 2*i] 	 = vec4(33.0, (33.0 + (33.0 * i)), z1, 1);
+		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), z2, 1);
+
+		gridpoints[64 + 22 + 2*i] 	  = vec4(33.0, (33.0 + (33.0 * i)), z1, 1);
+		gridpoints[64 + 22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), z2, 1);
+	}
+
+	// Lines along z axies
+	for (int i = 0; i < 11; ++i)
+	{
+		for (int j = 0; j < 21; ++j)
+		{
+			gridpoints[128 + 22 * j + 2 * i] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), zStarting, 1);
+			gridpoints[128 + 22 * j + 2 * i + 1] = vec4(33.0 + (i * 33.0), 33.0 + (j * 33.0), -zStarting, 1);
+		}
+	}
+*/
 	// 
 	// Make all grid lines white
-	for (int i = 0; i < numOfGridPoints; i++)
+	for (int i = 0; i < numOfGridPoints ; i++)
 		gridcolours[i] = white;
 
 
@@ -538,6 +573,9 @@ void initGrid()
 	glBufferData(GL_ARRAY_BUFFER, numOfGridPoints*sizeof(vec4), gridcolours, GL_STATIC_DRAW); // Put the grid colours in the VBO
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor); // Enable the attribute
+
+	delete []gridpoints;
+	delete []gridcolours;
 }
 
 
@@ -1151,11 +1189,23 @@ void idle(void)
 }
 
 //-------------------------------------------------------------------------------------------------------------------
+// Game setting
+void getSettings() {
+	cout << "please enter width along z axies, of the grids" << endl;
+	cin >> n;
+	cout << endl;
 
+	numOfGridPoints = ( (11 + 21)*(n+1) + (21 * 11) ) * 2;
+}
+
+
+
+// ------------------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-
 	srand(time(0));
+
+	getSettings();
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
