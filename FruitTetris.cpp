@@ -21,7 +21,7 @@
 
 using namespace std;
 
-int timerIntervial = 1000;
+int timerIntervial = 10000;	// 10s
 int gameRound = 0;
 
 bool halted = false;
@@ -167,6 +167,13 @@ GLuint vboIDs[8]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 //-------------------------------------------------------------------------------------------------------------------
 // fuc decalrations
 
+// tile
+void newTile();
+void updateTileVLoc();
+void updateTileColor();
+void adjustTileLocation();
+
+
 // for sepcial keys(arrow keys)
 void rotatetile();
 void restartGame();
@@ -187,9 +194,9 @@ void decreaseTheta_Arm();
 void increasePhi_Arm();
 void decreasePhi_Arm();
 
-void adjustTileLocation();
-void updateTileColor();
 vec2 round();
+
+bool isGameOver();
 
 //---------------------------------------------------------------------------------------------------------------------
 // helper methods
@@ -285,6 +292,14 @@ bool moveTile(vec2 direction) {
 // Places the current tile
 void settleTile()
 {
+	if (isGameOver())
+	{
+		cout << "Game over!" << endl;
+		cout << "Press 'r' to restart, press 'q' to quit" << endl;
+		halted = true;
+		return;
+	}
+
 	// update the board vertex colour VBO
 	for (int i = 0; i < 4; i++)
 	{
@@ -309,6 +324,12 @@ void settleTile()
 		int y = tilePos.y + tile[i].y;
 		board[x][y] = true;
 	}
+
+	// new tile
+	newTile();
+	updateTileVLoc();
+	updateTileColor();
+
 }
 
 // When the current tile is moved or rotated (or created), update the VBO containing its vertex position data
@@ -410,8 +431,6 @@ bool istileOutOfRightBound() {
 void newTile()
 {
 
-
-	int tileXPos = randomNum(10);
 	int tileRotation = randomNum(4);
 
 	//tilePos = vec2(tileXPos , 19); // Put the tile at the top of the board
@@ -875,7 +894,6 @@ void special(int key, int x, int y)
 	int mode = glutGetModifiers();
 	if (mode == GLUT_ACTIVE_CTRL)
 	{
-		cout << "shit" << endl;
 		switch(key) {
 			case GLUT_KEY_LEFT: moveCameraCounterlockwise(); return;
 			case GLUT_KEY_RIGHT:moveCameraClockwise(); return;
@@ -962,6 +980,9 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		case 'p':// pause the game
 			paused = !paused;
+			break;
+		case ' ':
+			settleTile();
 			break;
 		case 'r': // 'r' key restarts the game
 			restartGame();
@@ -1101,7 +1122,7 @@ void Timer(int value) {
 
 	if (!(halted || paused))
 	{
-		//moveTileDownAndSettle();
+		settleTile();
 	}
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
