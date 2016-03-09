@@ -103,6 +103,7 @@ bool *board[10][20];
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
 vec4 *boardcolours;
+vec4 *boardpoints;
 
 // An array contatinng all the points of three parts of the robit arm
 vec4 armPoints[3*36];
@@ -252,10 +253,10 @@ bool occupied(int x, int y, int z) {
 
 // return true if collide, false otherwise
 bool collide(vec4* tile, vec4 direction) {
-	return occupied(tilePos.x + tile[0].x + direction.x, tilePos.y + tile[0].y + direction.y, tile[0].z + direction.z)
-		|| occupied(tilePos.x + tile[1].x + direction.x, tilePos.y + tile[1].y + direction.y, tile[1].z + direction.z)
-		|| occupied(tilePos.x + tile[2].x + direction.x, tilePos.y + tile[2].y + direction.y, tile[2].z + direction.z)
-		|| occupied(tilePos.x + tile[3].x + direction.x, tilePos.y + tile[3].y + direction.y, tile[3].z + direction.z);
+	return occupied(tilePos.x + tile[0].x + direction.x, tilePos.y + tile[0].y + direction.y, tilePos.z + tile[0].z + direction.z)
+		|| occupied(tilePos.x + tile[1].x + direction.x, tilePos.y + tile[1].y + direction.y, tilePos.z + tile[1].z + direction.z)
+		|| occupied(tilePos.x + tile[2].x + direction.x, tilePos.y + tile[2].y + direction.y, tilePos.z + tile[2].z + direction.z)
+		|| occupied(tilePos.x + tile[3].x + direction.x, tilePos.y + tile[3].y + direction.y, tilePos.z + tile[3].z + direction.z);
 }
 
 // Given (x,y), tries to move the tile x squares to the right and y squares down
@@ -277,7 +278,14 @@ bool moveTile(vec4 direction) {
 // Places the current tile
 void settleTile()
 {
+	// clear color buffer
+	/*
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 
+	*/
 
 	if (isGameOver())
 	{
@@ -290,15 +298,24 @@ void settleTile()
 	// update the board vertex colour VBO
 	for (int i = 0; i < 4; i++)
 	{
+		int x = tilePos.x + tile[i].x;
+		int y = tilePos.y + tile[i].y;
+		int z = tilePos.z + tile[i].z;
+		int cubeStartingIndex = 36 * (200*z + 10*y + x);
+
+		cout << x << ' ' << y << ' ' << z << ' ' << cubeStartingIndex << endl;
 		for (int j = 0; j < 36; j++)
 		{
 			// each square has 6 vertex
-			int vIndex = 36 * (200 * (tilePos.z + tile[i].z) + 10 * (tilePos.y + tile[i].y) + (tilePos.x + tile[i].x)) + j;
+			int vIndex = cubeStartingIndex + j;
 			boardcolours[vIndex] = currenttileFruitColors[i];
 		}
 	}
 
 	// update vbo
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), boardpoints, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	//glBindVertexArray(0);
@@ -331,18 +348,22 @@ void updateTileVLoc() {
 		// Calculate the grid coordinates of the cell
 		GLfloat x = tilePos.x + tile[i].x; 
 		GLfloat y = tilePos.y + tile[i].y;
+		GLfloat z = tilePos.z + tile[i].z;
+
+		GLfloat z1 = -33.0*n/2 + 33.0*z;
+		GLfloat z2 = z1 + 33.0;
 
 		// Create the 8 corners of the cubic - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), -16.5, 1); 
-		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), -16.5, 1);
-		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), -16.5, 1);
-		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), -16.5, 1);
+		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), z1, 1); 
+		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), z1, 1);
+		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), z1, 1);
+		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), z1, 1);
 
-		vec4 p5 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 16.5, 1); 
-		vec4 p6 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), 16.5, 1);
-		vec4 p7 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), 16.5, 1);
-		vec4 p8 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), 16.5, 1);
+		vec4 p5 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), z2, 1); 
+		vec4 p6 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), z2, 1);
+		vec4 p7 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), z2, 1);
+		vec4 p8 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), z2, 1);
 
 
 		// Two points are used by two triangles(6 vertices) each
@@ -377,43 +398,6 @@ void updateTileColor() {
 
 }
 
-// whether a tile is out of upper bound
-// used when generating position of new tile
-bool istileOutOfUpperBound() {
-	for (int i = 0; i < 4; ++i)
-	{
-		if (tilePos.y + tile[i].y > 19)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool istileOutOfLeftBound() {
-	for (int i = 0; i < 4; ++i)
-	{
-		if (tilePos.x + tile[i].x < 0)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool istileOutOfRightBound() {
-	for (int i = 0; i < 4; ++i)
-	{
-		if (tilePos.x + tile[i].x > 9)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
 
 // Called at the start of play and every time a tile is placed
 void newTile()
@@ -421,8 +405,8 @@ void newTile()
 
 	int tileRotation = randomNum(4);
 
-	//tilePos = vec2(tileXPos , 19); // Put the tile at the top of the board
 	tilePos = round();
+
 	tileType = randomNum(4);	// random type of tile
 
 	// Update the geometry VBO of current tile
@@ -547,7 +531,6 @@ void setCubicFace(vec4 *boardpoints, int startingIndex,
 void initBoard()
 {
 	// *** Generate the geometric data
-	vec4 *boardpoints = new vec4[numOfBoardPoints];
 	for (int i = 0; i < numOfBoardPoints; i++) {
 		boardcolours[i] = black; // Let the empty cells on the board be black
 	}
@@ -1065,7 +1048,10 @@ vec4 round() {
 
 	location.x = ((int)robortArmEndPoint.x-33)/33;
 	location.y = ((int)robortArmEndPoint.y-33)/33;
-	location.z = ((int)robortArmEndPoint.z+ 33.0*n/2)/33;
+	location.z = (int)(robortArmEndPoint.z+ 33.0*n/2)/33;
+
+	cout << "tilePos: " << tilePos.x<< " " << tilePos.y << ' ' << tilePos.z << ' ';
+	cout << endl << endl << endl;
 
 	return location;
 }
@@ -1163,6 +1149,7 @@ void getSettings() {
 	// board
 	numOfBoardPoints = 1200 * 6 * n;
 	boardcolours = new vec4[numOfBoardPoints];
+	boardpoints = new vec4[numOfBoardPoints];
 
 	for (int i = 0; i < 10; ++i)
 	{
