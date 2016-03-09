@@ -1,29 +1,32 @@
 # Furit-Teris
 * CMPT 361 Assignment 1
 * Created by Jiaxun He(Victor)
-* Used skeleton code provied by the TA
-* Furit-teris is a game where the teris is made of fruits and can be eliminated by the rules in falling fruit!
+* Furit-teris-3d is a 3D game where the teris is made of fruits and be placed in 3d board by a robort arm.
 
 ## Compile and run
 * make
-* ./FruitTeris
+* ./FruitTeris3D
 
 ## How to play
 * 'r' -> restart
 * 'q' -> quit
 * 'p' -> pause
-* 'a' -> accelerate
-* 'up' -> rotate
-* 'down' -> move title down by 1
-* 'left' -> move title to the left by 1
-* 'right' -> move title to the right by 1
+* 'a' -> raise lower_arm
+* 'd' -> lower lower_arm
+* 'w' -> raise upper_arm
+* 's' -> lower upper_arm
+* 'z' -> rotate the whole arm along Y axis counter-clockwise
+* 'x' -> rotate the whole arm along Y axis clockwise
+* 'up' -> rotate along Z axis
+* 'left' -> rotate along X axis
+* 'right' -> rotate along Y axis
 
 ## Compeletion Status
-* As far as I can see, I implemented all the features that are required.
+* As far as I can see, I implemented all the features that are required
+* I have finished the <strong>BOUNUS<strong> part
 * Additional features:
 	* pause game
-	* accelerate falling speed
-
+	* let tile rotate along any axies
 
 ## Game Logic
 
@@ -36,24 +39,24 @@
 	* I shape
 	* Z shape
 	* T shape
-* Title has 4 possible rotations for each shape
-	* Even I and Z has 4 rotations.
-	* I made it so because they are different due to the fruits in it
-* Change rotations
-	* Press up arrow key to rotate, in counter-clockwise direction.
-	* if no collison after rotation, rotate it
-	* If collison, I will move it by 1 horizontally to try to find a position where there is no collision. If still doesn't work, then title will not be rotated.
-* Falling Speed 
-	* the initial falling interval is 1000ms
-	* press 'a' and interval will decrese 200ms
-	* minimum interval is 200ms
-	* no way to increse the interval except for restarting the game
+	* 3 3D shapes
+* Title has a lot of rotations for each shape, can rotate along:
+	* X axis
+	* Y axis
+	* Z axis
+* Collision
+	* Collison is allowed when operating the robort arm
+	* Once tile is settled (timer runs up or space key pressed), collison is not allowed
+		* Game is over at that time
+	* The fruit that has collision with other tile, or is out of board, is colored grey
 * Eliminate
-	* If there is a full row, it will be eliminated
-	* If there is more than 3 consecutive same fruits, they will be eliminated.
-	* Real elimination will happen when all tests is done, which means that the maximum fruits will be eliminated.
-	* And elimination will go on untill no fruits can be eliminated.
-	* All the fruit will move done by the number of fruits down them that are eliminated.
-* Game termination
-	* The game will halt when it's over. And will prompt on stdout that the game is over.
+	* there is no elimination in this game, since it is not required
+* Timer
+	* timer count down will show up at the top of the screen
+* Gameover
+	* "gameover" will show up at the top of the screen, if it is the time
+* Pause
+	* timer will stop
+	* no action is allowed
+	* a string "paused" will show up at the top of the screen 
 
