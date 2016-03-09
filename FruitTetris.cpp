@@ -278,15 +278,7 @@ bool moveTile(vec4 direction) {
 // Places the current tile
 void settleTile()
 {
-	// clear color buffer
-	/*
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
-
-	*/
-
+	
 	if (isGameOver())
 	{
 		cout << "Game over!" << endl;
@@ -294,6 +286,13 @@ void settleTile()
 		halted = true;
 		return;
 	}
+
+	// clear color buffer
+	
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 
 	// update the board vertex colour VBO
 	for (int i = 0; i < 4; i++)
@@ -593,7 +592,6 @@ void initBoard()
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 
-	delete[] boardpoints;
 }
 
 
@@ -816,7 +814,7 @@ void display()
 	model_view = Scale(2.0/33, 2.0/33, 2.0/33);
 
 	vec4 eye(radius*sin(theta)*cos(phi),
-			 radius*sin(theta)*sin(phi),//+ 500, 
+			 radius*sin(theta)*sin(phi),//+ 700, 
 			 radius*cos(theta), 
 			 1.0);
 	vec4 at(0, 20/2, 0, 1.0);
@@ -1072,7 +1070,7 @@ void restartGame() {
 	}
 
 	// set all board colors to black
-	for (int i = 0; i < 1200 * 6; ++i)
+	for (int i = 0; i < numOfBoardPoints; ++i)
 	{
 		boardcolours[i] = black;
 	}
