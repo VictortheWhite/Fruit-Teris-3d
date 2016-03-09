@@ -69,7 +69,7 @@ mat4 armModel_view;
 
 
 
-vec4 allRotationsShapes[8][4] = {
+vec4 allRotationsShapes[7][4] = {
 	// L shape
 	{vec4(0, 0, 0, 0), vec4(-1,0, 0, 0), vec4(1, 0, 0, 0), vec4(-1,-1, 0, 0)},
 	// I shape
@@ -132,7 +132,7 @@ mat4 model_view;
 mat4 projection;
 
 // viewing transformation parameters
-GLfloat radius = 1500;
+GLfloat radius = 1200;
 GLfloat theta = 0.0;
 GLfloat phi = 0.0;
 
@@ -165,11 +165,6 @@ void rotatetile();
 void rotateTileAroundY();
 void rotateTileAroundX();
 void restartGame();
-
-void moveTileToLeft();
-void moveTileToRight();
-bool moveTileDown();
-void moveTileDownAndSettle();
 
 void moveCameraClockwise();
 void moveCameraCounterlockwise();
@@ -416,7 +411,7 @@ void newTile()
 
 	tilePos = round();
 
-	tileType = randomNum(8);	// random type of tile
+	tileType = randomNum(7);	// random type of tile
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
@@ -861,10 +856,10 @@ void display()
 	projection = Perspective(fovy, aspect, zNear, zFar);
 
 	// model_view
-	model_view = Scale(2.0/33, 2.0/33, 2.0/33);
+	model_view = Scale(1.0/33, 1.0/33, 1.0/33);
 
 	vec4 eye(radius*sin(theta)*cos(phi),
-			 radius*sin(theta)*sin(phi),//+ 700, 
+			 radius*sin(theta)*sin(phi) +700, 
 			 radius*cos(theta), 
 			 1.0);
 	vec4 at(0, 20/2, 0, 1.0);
@@ -906,6 +901,7 @@ void reshape(GLsizei w, GLsizei h)
 {
 	xsize = w;
 	ysize = h;
+	aspect = 1.0*xsize/ysize;
 	glViewport(0, 0, w, h);
 }
 
@@ -1001,10 +997,10 @@ void keyboard(unsigned char key, int x, int y)
 		case 's':
 			decreasePhi_Arm();
 			break;
-		case 'z':
+		case 'x':
 			increaseBeta_Arm();
 			break;
-		case 'x':
+		case 'z':
 			decreaseBeta_Arm();
 			break;
 		case 'p':// pause the game
@@ -1012,6 +1008,7 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		case ' ':
 			settleTile();
+			timerCountDown = 9;
 			break;
 		case 'r': // 'r' key restarts the game
 			restartGame();
@@ -1146,8 +1143,6 @@ vec4 round() {
 	location.y = ((int)robortArmEndPoint.y-33)/33;
 	location.z = (int)(robortArmEndPoint.z+ 33.0*n/2)/33;
 
-	cout << endl << endl << endl;
-
 	return location;
 }
 
@@ -1191,6 +1186,9 @@ void restartGame() {
 
 	// reset speed
 	timerIntervial = 1000;
+
+	// reset timer
+	timerCountDown = 9;
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
 
@@ -1268,10 +1266,17 @@ void idle(void)
 //-------------------------------------------------------------------------------------------------------------------
 // Game setting
 void getSettings() {
-	cout << "please enter width along z axies, of the grids" << endl;
+	cout << endl << "please enter width along z axies, of the grids" << endl;
 	cin >> n;
-	cout << endl;
+	cout << endl << endl;;
 
+	cout << "press 'z' to rotate the whole arm around y axis counter-clockwise" << endl
+		<< "press 'x' to rotate the whold arm around y axis clockwise" << endl << endl
+		<< "press 'up' to rotate the tile around Z axis" << endl
+		<< "press 'left' to rotate the tile around X axis" << endl
+		<< "press 'right' to rotate the tile around Y axis" << endl << endl
+		<< "press 'space' to settle tile" << endl
+		<< "press 'p' to pause the game" << endl;
 	numOfGridPoints = ( (11 + 21)*(n+1) + (21 * 11) ) * 2;
 
 	// board
