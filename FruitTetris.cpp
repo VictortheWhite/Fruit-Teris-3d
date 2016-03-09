@@ -24,8 +24,8 @@ using namespace std;
 
 int n = 1;	// 20*10*n grids
 
-int timerIntervial = 10000;	// 10s
-int timerCountDown = 0;
+int timerIntervial = 1000;	// 10s
+int timerCountDown = 9;
 int gameRound = 0;
 
 bool halted = false;
@@ -69,15 +69,19 @@ mat4 armModel_view;
 
 
 
-vec4 allRotationsShapes[4][4] = {
+vec4 allRotationsShapes[8][4] = {
 	// L shape
 	{vec4(0, 0, 0, 0), vec4(-1,0, 0, 0), vec4(1, 0, 0, 0), vec4(-1,-1, 0, 0)},
 	// I shape
 	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(-1, 0, 0, 0), vec4(-2, 0, 0, 0)},
 	// S shape
-	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(0, -1, 0, 0), vec4(-1,-1, 0, 0)},
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4( 0,-1, 0, 0), vec4(-1,-1, 0, 0)},
 	// T shape
-	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(-1, 0, 0, 0), vec4(0, -1, 0, 0)},
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(-1, 0, 0, 0), vec4( 0, -1, 0, 0)},
+	// 3d shapes
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4( 0, 1, 0, 0), vec4( 0,  0, 1, 0)},
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4( 0, 1, 0, 0), vec4( 1,  0, 1, 0)},
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4( 0, 1, 0, 0), vec4( 0,  1, 1, 0)}
 };
 
 
@@ -308,7 +312,6 @@ void settleTile()
 		int z = tilePos.z + tile[i].z;
 		int cubeStartingIndex = 36 * (200*z + 10*y + x);
 
-		cout << x << ' ' << y << ' ' << z << ' ' << cubeStartingIndex << endl;
 		for (int j = 0; j < 36; j++)
 		{
 			// each square has 6 vertex
@@ -409,10 +412,11 @@ void newTile()
 {
 
 	int tileRotation = randomNum(4);
+	int tileRotationDirection = randomNum(3);
 
 	tilePos = round();
 
-	tileType = randomNum(4);	// random type of tile
+	tileType = randomNum(8);	// random type of tile
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
@@ -423,6 +427,35 @@ void newTile()
 	for (int i = 0; i < 4; i++)
 	{
 		tileColors[i] = fruitColors[randomNum(5)];
+	}
+
+	// rotate some way to make it random
+	for (int i = 0; i < 4; ++i)
+	{
+		if (tileRotationDirection == 0)
+		{
+			for (int j = 0; j < tileRotation; ++j)
+			{
+				tile[i] = RotateZ(90) * tile[i];
+			}
+			
+		}
+		if (tileRotationDirection == 1)
+		{
+			for (int j = 0; j < tileRotation; ++j)
+			{
+				tile[i] = RotateX(90) * tile[i];
+			}
+			
+		}
+		if (tileRotationDirection == 3)
+		{
+			for (int j = 0; j < tileRotation; ++j)
+			{
+				tile[i] = RotateY(90) * tile[i];
+			}
+			
+		}
 	}
 
 }
@@ -1113,7 +1146,6 @@ vec4 round() {
 	location.y = ((int)robortArmEndPoint.y-33)/33;
 	location.z = (int)(robortArmEndPoint.z+ 33.0*n/2)/33;
 
-	cout << "tilePos: " << tilePos.x<< " " << tilePos.y << ' ' << tilePos.z << ' ';
 	cout << endl << endl << endl;
 
 	return location;
@@ -1158,7 +1190,7 @@ void restartGame() {
 	gameRound++;
 
 	// reset speed
-	timerIntervial = 10000;
+	timerIntervial = 1000;
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
 
@@ -1178,7 +1210,12 @@ void Timer(int value) {
 
 	if (!(halted || paused))
 	{
-		//settleTile();
+		timerCountDown --;
+		if (timerCountDown == -1)
+		{
+			settleTile();
+			timerCountDown = 9;
+		}
 	}
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
