@@ -158,6 +158,8 @@ void adjustTileLocation();
 
 // for sepcial keys(arrow keys)
 void rotatetile();
+void rotateTileAroundY();
+void rotateTileAroundX();
 void restartGame();
 
 void moveTileToLeft();
@@ -896,8 +898,8 @@ void special(int key, int x, int y)
 
 	switch(key) {
 		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
-		case GLUT_KEY_RIGHT: increaseBeta_Arm(); break;
-		case GLUT_KEY_LEFT: decreaseBeta_Arm(); break;
+		case GLUT_KEY_RIGHT: rotateTileAroundY(); break;
+		case GLUT_KEY_LEFT: rotateTileAroundX(); break;
 		default: break;
 	}
 }
@@ -917,6 +919,24 @@ void rotatetile() {
 	for (int i = 0; i < 4; ++i)
 	{
 		tile[i] = RotateZ(90) * tile[i];
+	}
+	updateTileVLoc();
+	updateTileColor();
+}
+
+void rotateTileAroundY() {
+	for (int i = 0; i < 4; ++i)
+	{
+		tile[i] = RotateY(90) * tile[i];
+	}
+	updateTileVLoc();
+	updateTileColor();
+}
+
+void rotateTileAroundX() {
+	for (int i = 0; i < 4; ++i)
+	{
+		tile[i] = RotateX(90) * tile[i];
 	}
 	updateTileVLoc();
 	updateTileColor();
@@ -947,6 +967,12 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		case 's':
 			decreasePhi_Arm();
+			break;
+		case 'z':
+			increaseBeta_Arm();
+			break;
+		case 'x':
+			decreaseBeta_Arm();
 			break;
 		case 'p':// pause the game
 			paused = !paused;
