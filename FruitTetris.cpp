@@ -60,6 +60,7 @@ const GLfloat UPPER_ARM_WIDTH  = 20;
 // angel to control arm
 GLfloat theta_arm = 0;
 GLfloat phi_arm = 0;
+GLfloat beta_arm = 0;
 mat4 armModel_view;
 
 // An array storing all possible orientations of all possible tiles
@@ -174,6 +175,8 @@ void increaseTheta_Arm();
 void decreaseTheta_Arm();
 void increasePhi_Arm();
 void decreasePhi_Arm();
+void increaseBeta_Arm();
+void decreaseBeta_Arm();
 
 vec4 round();
 
@@ -673,6 +676,7 @@ void lowerArm() {
 	transformMat *= Translate(baseOffset);
 	// rotate
 	transformMat *= RotateZ(-theta_arm);
+	transformMat *= RotateX(-beta_arm);
 	// translate
 	transformMat *= Translate(0, LOWER_ARM_HEIGHT/2.0, 0);
 	// scale to proper shape
@@ -695,11 +699,12 @@ void upperArm() {
 	// base offset
 	transformMat *= Translate(baseOffset);
 	// tranlation based on lower and uper arm
-	transformMat *= Translate(LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm),
-							  LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
-							  0);
+	//transformMat *= Translate(LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm)*cos(DegreesToRadians*beta_arm),
+							  //LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
+							  //LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm)*sin(DegreesToRadians*beta_arm));
 	// rotate
 	transformMat *= RotateZ(-theta_arm + phi_arm - 90);
+	transformMat *= RotateX(-beta_arm);
 	// translate the rotation point to origin
 	transformMat *= Translate(0, UPPER_ARM_HEIGHT/2.0, 0);
 	// scale to proper shape
@@ -881,6 +886,8 @@ void special(int key, int x, int y)
 
 	switch(key) {
 		case GLUT_KEY_UP: rotatetile(); break;	// rotate tile if "up"
+		case GLUT_KEY_RIGHT: increaseBeta_Arm(); break;
+		case GLUT_KEY_LEFT: decreaseBeta_Arm(); break;
 		default: break;
 	}
 }
@@ -897,16 +904,6 @@ void moveCameraCounterlockwise() {
 
 // Rotates the current tile, when up is pressed
 void rotatetile() {      
-	/*
-	// new rotation
-	int newRotation = rotationStatus;
-
-	newRotation = (newRotation + 1) % 4;
-
-	// rotate and update tile
-	rotationStatus = newRotation;
-	copyArray4OfVec2(tile, allRotationsShapes[tileType][newRotation]);
-	*/
 	for (int i = 0; i < 4; ++i)
 	{
 		tile[i] = RotateZ(90) * tile[i];
@@ -1016,6 +1013,40 @@ void decreasePhi_Arm() {
 	}
 
 	phi_arm -= 2;
+	drawArm();
+
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glBindVertexArray(vboIDs[6]);
+
+	adjustTileLocation();
+}
+
+void increaseBeta_Arm() {
+	if (halted || paused)
+	{
+		return;
+	}
+
+	beta_arm += 2;
+	drawArm();
+
+	// update vbo
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 36*4*sizeof(vec4), armPoints, GL_DYNAMIC_DRAW);
+	glBindVertexArray(vboIDs[6]);
+
+	adjustTileLocation();
+}
+
+void decreaseBeta_Arm() {
+	if (halted || paused)
+	{
+		return;
+	}
+
+	beta_arm -= 2;
 	drawArm();
 
 	// update vbo
@@ -1178,8 +1209,8 @@ int main(int argc, char **argv)
 	glewInit();
 	init();
 
-	glEnable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Callback functions
 	glutDisplayFunc(display);
