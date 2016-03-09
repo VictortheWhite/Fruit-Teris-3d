@@ -36,8 +36,8 @@ int ysize = 820;	// used to be 720
 int zsize = 33;
 
 // current tile
-vec2 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
-vec2 tilePos = vec2(5, 19); // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
+vec4 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
+vec4 tilePos; // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
 vec4 tileColors[4];	// A array containing the colors of current tile
 
 // the type and rotation of the current tile
@@ -46,7 +46,7 @@ int rotationStatus;
 
 
 // constants
-int numOfGridPoints;; // 64 * 2 + 11 * 21 * 2
+int numOfGridPoints; // 64 * 2 + 11 * 21 * 2
 int numOfBoardPoints;
 
 // Parameters controlling the size of the Robot's arm
@@ -64,43 +64,18 @@ mat4 armModel_view;
 
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
-vec2 allRotationsLshape[4][4] = {
-	{vec2(0,0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-		{vec2(0,0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
-		{vec2(0,0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
-		{vec2(0,0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
-};
 
 
-vec2 allRotationsShapes[4][4][4] = {
+
+vec4 allRotationsShapes[4][4] = {
 	// L shape
-	{
-		{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-		{vec2(0, 0), vec2(0,-1), vec2(0, 1), vec2(1, -1)},
-		{vec2(0, 0), vec2(1, 0), vec2(-1,0), vec2(1,  1)},
-		{vec2(0, 0), vec2(0, 1), vec2(0,-1), vec2(-1, 1)}
-	},
+	{vec4(0, 0, 0, 0), vec4(-1,0, 0, 0), vec4(1, 0, 0, 0), vec4(-1,-1, 0, 0)},
 	// I shape
-	{
-		{vec2(0, 0), vec2(1, 0), vec2(-1, 0), vec2(-2, 0)},
-		{vec2(0, 0), vec2(0, 1), vec2(0, -1), vec2(0, -2)},
-		{vec2(0, 0), vec2(-1,0), vec2(1,  0), vec2(2,  0)},
-		{vec2(0, 0), vec2(0,-1), vec2(0,  1), vec2(0,  2)}
-	},
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(-1, 0, 0, 0), vec4(-2, 0, 0, 0)},
 	// S shape
-	{
-		{vec2(0, 0), vec2(1, 0), vec2(0, -1), vec2(-1,-1)},
-		{vec2(0, 0), vec2(0, 1), vec2(1,  0), vec2(1, -1)},
-		{vec2(0, 0), vec2(-1,0), vec2(0,  1), vec2(1,  1)},
-		{vec2(0, 0), vec2(0,-1), vec2(-1, 0), vec2(-1, 1)}
-	},
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(0, -1, 0, 0), vec4(-1,-1, 0, 0)},
 	// T shape
-	{
-		{vec2(0, 0), vec2(1, 0), vec2(-1, 0), vec2(0, -1)},
-		{vec2(0, 0), vec2(0, 1), vec2(0, -1), vec2(1,  0)},
-		{vec2(0, 0), vec2(-1,0), vec2(1,  0), vec2(0,  1)},
-		{vec2(0, 0), vec2(0,-1), vec2(0,  1), vec2(-1, 0)}
-	}
+	{vec4(0, 0, 0, 0), vec4(1, 0, 0, 0), vec4(-1, 0, 0, 0), vec4(0, -1, 0, 0)},
 };
 
 
@@ -122,7 +97,7 @@ vec4 fruitColors[5] = {orange, red, green, blue, purple};
 vec4 currenttileFruitColors[4];
 
 //board[x][y] represents whether the cell (x,y) is occupied
-bool board[10][20]; 
+bool *board[10][20]; 
 
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
@@ -199,7 +174,7 @@ void decreaseTheta_Arm();
 void increasePhi_Arm();
 void decreasePhi_Arm();
 
-vec2 round();
+vec4 round();
 
 bool isGameOver();
 
@@ -257,7 +232,7 @@ vec4 getGridColor(vec2 pos) {
 // tile operations
 
 // return true if occupied or out of board
-bool occupied(int x, int y) {
+bool occupied(int x, int y, int z) {
 	if(x > 9 || x < 0) {
 		// x out of bound
 		return true;
@@ -266,21 +241,26 @@ bool occupied(int x, int y) {
 		// y out of bound
 		return true;
 	}
+	if (z > n || z < 0)
+	{
+		// z out of bound
+		return true;
+	}
 
-	return board[x][y];
+	return board[x][y][z];
 }
 
 // return true if collide, false otherwise
-bool collide(vec2* tile, vec2 direction) {
-	return occupied(tilePos.x + tile[0].x + direction.x, tilePos.y + tile[0].y + direction.y)
-		|| occupied(tilePos.x + tile[1].x + direction.x, tilePos.y + tile[1].y + direction.y)
-		|| occupied(tilePos.x + tile[2].x + direction.x, tilePos.y + tile[2].y + direction.y)
-		|| occupied(tilePos.x + tile[3].x + direction.x, tilePos.y + tile[3].y + direction.y);
+bool collide(vec4* tile, vec4 direction) {
+	return occupied(tilePos.x + tile[0].x + direction.x, tilePos.y + tile[0].y + direction.y, tile[0].z + direction.z)
+		|| occupied(tilePos.x + tile[1].x + direction.x, tilePos.y + tile[1].y + direction.y, tile[1].z + direction.z)
+		|| occupied(tilePos.x + tile[2].x + direction.x, tilePos.y + tile[2].y + direction.y, tile[2].z + direction.z)
+		|| occupied(tilePos.x + tile[3].x + direction.x, tilePos.y + tile[3].y + direction.y, tile[3].z + direction.z);
 }
 
 // Given (x,y), tries to move the tile x squares to the right and y squares down
 // Returns true if the tile was successfully moved, or false if there was some issue
-bool moveTile(vec2 direction) {
+bool moveTile(vec4 direction) {
 	// if not collide, move tile
 	if(!collide(tile, direction)) {
 		/*
@@ -313,7 +293,7 @@ void settleTile()
 		for (int j = 0; j < 36; j++)
 		{
 			// each square has 6 vertex
-			int vIndex = 36 * (10 * (tilePos.y + tile[i].y) + (tilePos.x + tile[i].x)) + j;
+			int vIndex = 36 * (200 * (tilePos.z + tile[i].z) + 10 * (tilePos.y + tile[i].y) + (tilePos.x + tile[i].x)) + j;
 			boardcolours[vIndex] = currenttileFruitColors[i];
 		}
 	}
@@ -329,7 +309,8 @@ void settleTile()
 	{
 		int x = tilePos.x + tile[i].x;
 		int y = tilePos.y + tile[i].y;
-		board[x][y] = true;
+		int z = tilePos.z + tile[i].z;
+		board[x][y][z] = true;
 	}
 
 	// new tile
@@ -386,7 +367,7 @@ void updateTileVLoc() {
 void updateTileColor() {
 	for (int i = 0; i < 4; ++i)
 	{
-		if (occupied(tilePos.x + tile[i].x, tilePos.y + tile[i].y)) {
+		if (occupied(tilePos.x + tile[i].x, tilePos.y + tile[i].y, tilePos.z + tile[i].z)) {
 			currenttileFruitColors[i] = grey;
 		} else {
 			currenttileFruitColors[i] = tileColors[i];
@@ -446,7 +427,7 @@ void newTile()
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++) {
-		tile[i] = allRotationsShapes[tileType][tileRotation][i]; // Get the 4 pieces of the new tile
+		tile[i] = allRotationsShapes[tileType][i]; // Get the 4 pieces of the new tile
 	}
 
 	// generate random color for each fruit
@@ -477,7 +458,7 @@ void displaytile() {
 
 // return true if game is over
 bool isGameOver() {
-	return collide(tile, vec2(0,0));
+	return collide(tile, vec4(0,0,0,0));
 }
 
 
@@ -607,7 +588,10 @@ void initBoard()
 	// Initially no cell is occupied
 	for (int i = 0; i < 10; i++)
 		for (int j = 0; j < 20; j++)
-			board[i][j] = false; 
+			for (int k = 0; k < n; ++k)
+			{
+				board[i][j][k] = false; 
+			}
 
 
 	// *** set up buffer objects
@@ -932,6 +916,7 @@ void moveCameraCounterlockwise() {
 
 // Rotates the current tile, when up is pressed
 void rotatetile() {      
+	/*
 	// new rotation
 	int newRotation = rotationStatus;
 
@@ -940,6 +925,11 @@ void rotatetile() {
 	// rotate and update tile
 	rotationStatus = newRotation;
 	copyArray4OfVec2(tile, allRotationsShapes[tileType][newRotation]);
+	*/
+	for (int i = 0; i < 4; ++i)
+	{
+		tile[i] = RotateZ(90) * tile[i];
+	}
 	updateTileVLoc();
 	updateTileColor();
 }
@@ -1057,7 +1047,7 @@ void decreasePhi_Arm() {
 
 // adjust tile position
 void adjustTileLocation() {
-	vec2 newLocation = round();
+	vec4 newLocation = round();
 
 	cout << newLocation.x << ' ' << newLocation.y << endl;
 
@@ -1069,12 +1059,13 @@ void adjustTileLocation() {
 
 // round gives the location of the center of the tile
 // according to the position of the robort arm
-vec2 round() {
-	vec2 location;
+vec4 round() {
+	vec4 location;
 	vec4 robortArmEndPoint = armPoints[77];
 
 	location.x = ((int)robortArmEndPoint.x-33)/33;
 	location.y = ((int)robortArmEndPoint.y-33)/33;
+	location.z = ((int)robortArmEndPoint.z+ 33.0*n/2)/33;
 
 	return location;
 }
@@ -1086,10 +1077,11 @@ void restartGame() {
 	cout << "restarting game" << endl;
 
 	// empty the board
-	for (int i = 0; i < 10; ++i)
-	{
+	for (int i = 0; i < 10; ++i) {
 		for (int j = 0; j < 20; ++j) {
-			board[i][j] = false;
+			for (int k = 0; k < n; ++k) {
+				board[i][j][k] = false;
+			}
 		}
 	}
 
@@ -1171,6 +1163,17 @@ void getSettings() {
 	// board
 	numOfBoardPoints = 1200 * 6 * n;
 	boardcolours = new vec4[numOfBoardPoints];
+
+	for (int i = 0; i < 10; ++i)
+	{
+		for (int j = 0; j < 20; ++j)
+		{
+			for (int k = 0; k < n; ++k)
+			{
+				board[i][j] = new bool[n];
+			}
+		}
+	}
 }
 
 
