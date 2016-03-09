@@ -654,6 +654,8 @@ void base() {
 	mat4 transformMat = mat4();
 	// base offset from origin
 	transformMat *= Translate(baseOffset);
+	// rotate around y axis
+	transformMat *= RotateY(-beta_arm);
 	// scale to proper size
 	transformMat *= Scale(BASE_WIDTH/2, BASE_HEIGHT/2, BASE_WIDTH/2);
 	
@@ -675,8 +677,8 @@ void lowerArm() {
 	// base offset from origin
 	transformMat *= Translate(baseOffset);
 	// rotate
+	transformMat *= RotateY(-beta_arm);
 	transformMat *= RotateZ(-theta_arm);
-	transformMat *= RotateX(-beta_arm);
 	// translate
 	transformMat *= Translate(0, LOWER_ARM_HEIGHT/2.0, 0);
 	// scale to proper shape
@@ -698,13 +700,16 @@ void upperArm() {
 	mat4 transformMat = mat4();
 	// base offset
 	transformMat *= Translate(baseOffset);
+
+	// rotate around y axis
+	transformMat *= RotateY(-beta_arm);
+
 	// tranlation based on lower and uper arm
-	//transformMat *= Translate(LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm)*cos(DegreesToRadians*beta_arm),
-							  //LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
-							  //LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm)*sin(DegreesToRadians*beta_arm));
+	transformMat *= Translate(LOWER_ARM_HEIGHT*sin(DegreesToRadians*theta_arm),
+							  LOWER_ARM_HEIGHT*cos(DegreesToRadians*theta_arm),
+							  0);
 	// rotate
 	transformMat *= RotateZ(-theta_arm + phi_arm - 90);
-	transformMat *= RotateX(-beta_arm);
 	// translate the rotation point to origin
 	transformMat *= Translate(0, UPPER_ARM_HEIGHT/2.0, 0);
 	// scale to proper shape
@@ -719,6 +724,7 @@ void upperArm() {
 	delete []cube;
 
 }
+
 
 void drawArm() {
 
