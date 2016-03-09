@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 
 using namespace std;
 
@@ -245,7 +246,7 @@ bool occupied(int x, int y, int z) {
 		// y out of bound
 		return true;
 	}
-	if (z > n || z < 0)
+	if (z >= n || z < 0)
 	{
 		// z out of bound
 		return true;
@@ -292,10 +293,10 @@ void settleTile()
 
 	// clear color buffer
 	
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
+	//glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	//glBufferData(GL_ARRAY_BUFFER, numOfBoardPoints*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 
 	// update the board vertex colour VBO
 	for (int i = 0; i < 4; i++)
@@ -818,6 +819,9 @@ void display()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	printCountDown();
+
+
 	// projection
 	projection = Perspective(fovy, aspect, zNear, zFar);
 
@@ -1067,8 +1071,6 @@ void decreaseBeta_Arm() {
 void adjustTileLocation() {
 	vec4 newLocation = round();
 
-	cout << newLocation.x << ' ' << newLocation.y << endl;
-
 	tilePos = newLocation;
 
 	updateTileVLoc();
@@ -1148,8 +1150,6 @@ void Timer(int value) {
 		return;
 	}
 
-	printCountDown();
-
 	if (!(halted || paused))
 	{
 		//settleTile();
@@ -1161,8 +1161,38 @@ void Timer(int value) {
 // print time String
 
 void printCountDown() {
-	glRasterPos2f(600, 300);
-	glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, '0'+timerCountDown);
+
+	char timeLeftString[] = "Time Remainning: ";
+	char gameOverString[] = "Game Over!";
+	char gamePausedString[] = "Game Paused";
+
+	
+	glColor3f(1.0, 1.0, 1.0);	// text color white
+	glRasterPos2f(-0.25, 0.9);
+
+	if (halted) {
+		for (int i = 0; i < strlen(gameOverString); ++i)
+		{
+			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, gameOverString[i]);
+
+		}
+	} else if(paused) {
+		for (int i = 0; i < strlen(gamePausedString); ++i)
+		{
+			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, gamePausedString[i]);
+
+		}
+
+	} else {
+		for (int i = 0; i < strlen(timeLeftString); ++i)
+		{
+			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, timeLeftString[i]);
+		}
+
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, '0'+timerCountDown);
+	}
+
+
 }
 
 //-------------------------------------------------------------------------------------------------------------------
