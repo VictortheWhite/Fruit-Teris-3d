@@ -81,7 +81,7 @@ vec4 allRotationsShapes[4][4] = {
 
 // board colors
 vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
-vec4 black  = vec4(0.0, 0.0, 0.0, 1.0); 
+vec4 black  = vec4(0.0, 0.0, 0.0, 0.0); 
 
 // fruit colors
 vec4 orange = vec4(1.0, 0.5, 0.0, 1.0); 
@@ -1115,7 +1115,7 @@ void Timer(int value) {
 
 	if (!(halted || paused))
 	{
-		settleTile();
+		//settleTile();
 	}
 
 	glutTimerFunc(timerIntervial, Timer, gameRound);
@@ -1177,6 +1177,9 @@ int main(int argc, char **argv)
 	glutCreateWindow("Fruit Tetris");
 	glewInit();
 	init();
+
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Callback functions
 	glutDisplayFunc(display);
